@@ -1,0 +1,29 @@
+# Gradle
+.gradle/
+build/
+**/build/
+
+# Local configuration
+local.properties
+
+# APKs
+*.apk
+*.ap_
+
+# Java
+*.class
+
+# Logs
+*.log
+
+# Android Studio / VS Code
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db 
+
+# Gradle local
+gradle.zip
+gradle-8.6/
