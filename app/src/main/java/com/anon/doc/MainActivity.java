@@ -5,6 +5,9 @@ import android.app.AlertDialog;
 import android.text.InputType;
 import android.widget.EditText;
 import android.content.Intent;
+import android.content.ActivityNotFoundException;
+import android.os.Build;
+import java.util.List;
 import android.net.Uri;
 import android.os.Bundle;
 import android.widget.Button;
@@ -27,6 +30,9 @@ public class MainActivity extends Activity {
     private Button btnSelect;
     private Button btnAnon;
     private TextView txtStatus;
+    private Button btnViewFiles;
+    private File pendingSave;
+    private static final int SAVE_PDF = 2;
 
     private static final int PICK_FILE = 1;
 
@@ -40,6 +46,7 @@ public class MainActivity extends Activity {
     private void setBusy(boolean busy) {
         btnSelect.setEnabled(!busy);
         btnAnon.setEnabled(!busy && !lastText.isEmpty());
+        if (btnViewFiles != null) btnViewFiles.setEnabled(!busy);
     }
 
     private boolean isCurrentDocument(int version) {
@@ -55,6 +62,8 @@ protected void onCreate(Bundle savedInstanceState) {
 
         btnSelect = findViewById(R.id.btnSelect);
         btnAnon = findViewById(R.id.btnAnon);
+        btnViewFiles = findViewById(R.id.btnViewFiles);
+        btnViewFiles.setOnClickListener(v -> showOutputFiles());
         txtStatus = findViewById(R.id.txtStatus);
 
         PDFBoxResourceLoader.init(getApplicationContext());
@@ -85,6 +94,45 @@ protected void onCreate(Bundle savedInstanceState) {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
+        if (requestCode == SAVE_PDF) {
+            File source = pendingSave;
+            pendingSave = null;
+            if (source == null) return;
+            if (resultCode != RESULT_OK || data == null || data.getData() == null) {
+                source.delete();
+                setBusy(false);
+                txtStatus.setText("Guardado cancelado. Puedes volver a exportar.");
+                return;
+            }
+            Uri destination = data.getData();
+            try {
+                int flags = data.getFlags() & (Intent.FLAG_GRANT_READ_URI_PERMISSION
+                        | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                getContentResolver().takePersistableUriPermission(destination, flags);
+            } catch (SecurityException unsupported) {
+                // The save can still complete; later access may require the file manager.
+            }
+            documentExecutor.execute(() -> {
+                try {
+                    OutputStore.copyTo(getApplicationContext(), source, destination);
+                    OutputStore.rememberPickedFile(getApplicationContext(), destination, source.getName());
+                    runOnUiThread(() -> {
+                        if (destroyed) return;
+                        setBusy(false);
+                        txtStatus.setText("PDF guardado en la ubicación elegida. Pulsa Ver archivos anonimizados.");
+                    });
+                } catch (Exception error) {
+                    try { getContentResolver().delete(destination, null, null); }
+                    catch (Exception ignored) { }
+                    runOnUiThread(() -> {
+                        if (destroyed) return;
+                        setBusy(false);
+                        txtStatus.setText("No se pudo guardar: " + error.getMessage());
+                    });
+                } finally { source.delete(); }
+            });
+            return;
+        }
         if (requestCode == PICK_FILE && resultCode == RESULT_OK && data != null) {
             Uri uri = data.getData();
             final int version = ++documentVersion;
@@ -185,6 +233,7 @@ protected void onCreate(Bundle savedInstanceState) {
 
     @Override
     protected void onDestroy() {
+        if (pendingSave != null) { pendingSave.delete(); pendingSave = null; }
         destroyed = true;
         documentVersion++;
         documentExecutor.shutdownNow();
@@ -242,22 +291,92 @@ protected void onCreate(Bundle savedInstanceState) {
 
     private void exportPdf(String text, int version) {
         setBusy(true);
-        txtStatus.setText("Generando PDF con el texto revisado...");
+        txtStatus.setText("Guardando PDF revisado...");
         documentExecutor.execute(() -> {
+            File file = null;
             try {
-                File file = TextPdfExporter.export(getApplicationContext(), text);
-                runOnUiThread(() -> {
-                    if (!isCurrentDocument(version)) return;
-                    setBusy(false);
-                    txtStatus.setText("PDF de texto revisado generado: " + file.getAbsolutePath());
-                });
+                file = TextPdfExporter.export(getApplicationContext(), text);
+                if (Build.VERSION.SDK_INT >= 29) {
+                    OutputStore.publishToDownloads(getApplicationContext(), file);
+                    runOnUiThread(() -> {
+                        if (!isCurrentDocument(version)) return;
+                        setBusy(false);
+                        txtStatus.setText("Guardado en Descargas/AnonDoc. Pulsa Ver archivos anonimizados.");
+                    });
+                } else {
+                    File prepared = file;
+                    file = null;
+                    runOnUiThread(() -> {
+                        if (!isCurrentDocument(version)) { prepared.delete(); return; }
+                        pendingSave = prepared;
+                        Intent save = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+                        save.addCategory(Intent.CATEGORY_OPENABLE);
+                        save.setType("application/pdf");
+                        save.putExtra(Intent.EXTRA_TITLE, prepared.getName());
+                        save.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                | Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                                | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+                        try {
+                            startActivityForResult(save, SAVE_PDF);
+                        } catch (ActivityNotFoundException missing) {
+                            pendingSave.delete();
+                            pendingSave = null;
+                            setBusy(false);
+                            txtStatus.setText("No hay un selector de archivos disponible");
+                        }
+                    });
+                }
             } catch (Exception e) {
                 runOnUiThread(() -> {
                     if (!isCurrentDocument(version)) return;
                     setBusy(false);
-                    txtStatus.setText("Error al exportar: " + e.getMessage());
+                    txtStatus.setText("Error al guardar: " + e.getMessage());
+                });
+            } finally { if (file != null) file.delete(); }
+        });
+    }
+
+    private void showOutputFiles() {
+        setBusy(true);
+        txtStatus.setText("Buscando archivos anonimizados...");
+        documentExecutor.execute(() -> {
+            try {
+                List<OutputStore.Entry> files = OutputStore.list(getApplicationContext());
+                runOnUiThread(() -> {
+                    if (destroyed) return;
+                    setBusy(false);
+                    txtStatus.setText(Build.VERSION.SDK_INT >= 29
+                            ? "Carpeta de salida: Descargas/AnonDoc"
+                            : "Archivos guardados en las ubicaciones elegidas");
+                    String[] names = new String[files.size()];
+                    for (int i = 0; i < files.size(); i++) names[i] = files.get(i).name;
+                    AlertDialog.Builder list = new AlertDialog.Builder(this)
+                            .setTitle("Archivos anonimizados")
+                            .setNegativeButton("Cerrar", null);
+                    if (files.isEmpty()) list.setMessage("Todavía no hay archivos disponibles.");
+                    else list.setItems(names, (dialog, which) -> openOutput(files.get(which).uri));
+                    list.show();
+                });
+            } catch (Exception error) {
+                runOnUiThread(() -> {
+                    if (destroyed) return;
+                    setBusy(false);
+                    txtStatus.setText("No se pudieron listar los archivos: " + error.getMessage());
                 });
             }
         });
+    }
+
+    private void openOutput(Uri uri) {
+        Intent open = new Intent(Intent.ACTION_VIEW);
+        open.setDataAndType(uri, "application/pdf");
+        open.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        try {
+            startActivity(open);
+        } catch (ActivityNotFoundException missing) {
+            txtStatus.setText("Instala un visor de PDF para abrir el archivo");
+        } catch (SecurityException unavailable) {
+            txtStatus.setText("El archivo ya no está disponible o no se puede abrir");
+        }
     }
 }

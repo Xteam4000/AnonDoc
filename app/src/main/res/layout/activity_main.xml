@@ -18,6 +18,12 @@
         android:layout_height="wrap_content"
         android:text="Anonimizar" />
 
+    <Button
+        android:id="@+id/btnViewFiles"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Ver archivos anonimizados" />
+
     <TextView
         android:id="@+id/txtStatus"
         android:layout_width="match_parent"

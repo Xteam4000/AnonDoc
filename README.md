@@ -8,7 +8,8 @@ Prototipo Android para extraer texto de imágenes y PDF, ocultar datos personale
 2. Esperar a la extracción y al OCR.
 3. Pulsar Anonimizar; opcionalmente indicar datos adicionales (un nombre, dirección o valor por línea).
 4. Revisar y corregir el texto propuesto.
-5. Exportar expresamente el texto revisado.
+5. Exportar expresamente el texto revisado. En Android 10 o posterior se guarda en Descargas/AnonDoc; en Android anteriores se elige destino con Guardar como.
+6. Pulsar Ver archivos anonimizados y tocar un PDF para abrirlo con el visor instalado.
 
 ## Lectura y límites
 
@@ -27,7 +28,7 @@ Reglas para DNI/NIE/NIF, IBAN españoles, correos, teléfonos españoles con sep
 
 No se reemplaza indiscriminadamente toda palabra con mayúscula inicial. Los nombres libres, direcciones sin contexto, identificadores extranjeros y errores de OCR requieren revisión humana. No se garantiza anonimización completa ni detección de todas las categorías de datos personales.
 
-Se genera un documento nuevo que solo contiene el texto confirmado. No se copian imágenes, firmas, páginas originales ni sus metadatos. Es una reconstrucción textual, no una modificación del PDF original. Se ajustan las líneas y se usan nombres de archivo únicos.
+Se genera un documento nuevo que solo contiene el texto confirmado. No se copian imágenes, firmas, páginas originales ni sus metadatos. Es una reconstrucción textual, no una modificación del PDF original. Se ajustan las líneas y se usan nombres de archivo únicos. La copia de trabajo se crea en la caché privada y se elimina después del guardado. En Android 10 o posterior se publica el PDF completo en Descargas/AnonDoc mediante MediaStore, sin solicitar permisos amplios de almacenamiento. El botón Ver archivos anonimizados muestra los archivos disponibles de esa carpeta dentro de la aplicación; no depende de que un explorador externo admita abrir carpetas mediante intents. En versiones anteriores se usa el selector Guardar como y se registran los archivos elegidos. Es necesario tener un visor de PDF para abrirlos.
 
 ## Desarrollo y verificación
 

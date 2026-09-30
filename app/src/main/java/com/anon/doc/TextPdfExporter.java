@@ -13,7 +13,7 @@ final class TextPdfExporter {
     private TextPdfExporter() {}
 
     static File export(Context context, String text) throws IOException {
-        File directory = context.getExternalFilesDir(null);
+        File directory = context.getCacheDir();
         if (directory == null) throw new IOException("No se puede acceder al directorio de salida");
         File file = File.createTempFile("anonimizado_", ".pdf", directory);
         PdfDocument pdf = new PdfDocument();
