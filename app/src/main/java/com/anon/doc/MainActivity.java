@@ -17,6 +17,10 @@ import com.google.mlkit.vision.text.TextRecognizer;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import com.tom_roush.pdfbox.android.PDFBoxResourceLoader;
 
 import android.graphics.pdf.PdfDocument;
 
@@ -29,6 +33,19 @@ public class MainActivity extends Activity {
     private static final int PICK_FILE = 1;
 
     private String lastText = "";
+    private final ExecutorService documentExecutor = Executors.newSingleThreadExecutor();
+    private int documentVersion = 0;
+    private boolean destroyed = false;
+    private TextRecognizer activeRecognizer;
+
+    private void setBusy(boolean busy) {
+        btnSelect.setEnabled(!busy);
+        btnAnon.setEnabled(!busy && !lastText.isEmpty());
+    }
+
+    private boolean isCurrentDocument(int version) {
+        return !destroyed && version == documentVersion;
+    }
 
     @Override
 protected void onCreate(Bundle savedInstanceState) {
@@ -41,6 +58,8 @@ protected void onCreate(Bundle savedInstanceState) {
         btnAnon = findViewById(R.id.btnAnon);
         txtStatus = findViewById(R.id.txtStatus);
 
+        PDFBoxResourceLoader.init(getApplicationContext());
+        setBusy(false);
         txtStatus.setText("App iniciada correctamente");
 
         btnSelect.setOnClickListener(v -> openFilePicker());
@@ -57,6 +76,8 @@ protected void onCreate(Bundle savedInstanceState) {
     private void openFilePicker() {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.setType("*/*");
+        intent.putExtra(Intent.EXTRA_MIME_TYPES,
+                new String[]{"application/pdf", "image/*"});
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         startActivityForResult(intent, PICK_FILE);
     }
@@ -67,57 +88,101 @@ protected void onCreate(Bundle savedInstanceState) {
 
         if (requestCode == PICK_FILE && resultCode == RESULT_OK && data != null) {
             Uri uri = data.getData();
-
+            final int version = ++documentVersion;
+            lastText = "";
+            setBusy(false);
+            if (uri == null) {
+                txtStatus.setText("No se ha recibido ningún documento");
+                return;
+            }
             try {
-                InputStream inputStream = getContentResolver().openInputStream(uri);
-
-                String path = uri.toString().toLowerCase();
-
-                if (path.contains("pdf")) {
-                    handlePdf(inputStream);
+                String mime = getContentResolver().getType(uri);
+                mime = mime == null ? "" : mime.toLowerCase(Locale.ROOT);
+                if (mime.equals("application/pdf")) {
+                    handlePdf(uri, version);
+                } else if (mime.startsWith("image/")) {
+                    handleImage(uri, version);
                 } else {
-                    handleImage(uri);
+                    txtStatus.setText("Formato no compatible o desconocido. Selecciona un PDF o una imagen.");
                 }
-
             } catch (Exception e) {
-                txtStatus.setText("Error: " + e.getMessage());
+                txtStatus.setText("Error al abrir el documento: " + e.getMessage());
+                setBusy(false);
             }
         }
     }
 
-    private void handlePdf(InputStream inputStream) {
-        try {
-            byte[] buffer = new byte[inputStream.available()];
-            inputStream.read(buffer);
-            lastText = new String(buffer);
+    private void handlePdf(Uri uri, int version) {
+        setBusy(true);
+        txtStatus.setText("Extrayendo texto del PDF...");
+        documentExecutor.execute(() -> {
+            try (InputStream stream = getContentResolver().openInputStream(uri)) {
+                if (stream == null) throw new java.io.IOException("No se puede abrir el PDF");
+                String text = PdfTextReader.read(stream);
+                runOnUiThread(() -> {
+                    if (!isCurrentDocument(version)) return;
+                    lastText = text == null ? "" : text.trim();
+                    setBusy(false);
+                    txtStatus.setText(lastText.isEmpty()
+                            ? "PDF sin texto extraíble. Puede necesitar OCR; no se ha generado una salida."
+                            : "Texto extraído; las imágenes no se han procesado con OCR. Pulsa Anonimizar.");
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    if (!isCurrentDocument(version)) return;
+                    lastText = "";
+                    setBusy(false);
+                    txtStatus.setText("No se pudo leer el PDF (puede estar protegido o dañado): " + e.getMessage());
+                });
+            }
+        });
+    }
 
-            txtStatus.setText("PDF cargado (lectura básica)");
+    private void handleImage(Uri uri, int version) {
+        setBusy(true);
+        txtStatus.setText("Reconociendo texto de la imagen...");
+        try {
+            InputImage image = InputImage.fromFilePath(this, uri);
+            final TextRecognizer recognizer =
+                    TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
+            activeRecognizer = recognizer;
+            recognizer.process(image)
+                    .addOnSuccessListener(result -> {
+                        if (!isCurrentDocument(version)) return;
+                        lastText = result.getText().trim();
+                        setBusy(false);
+                        txtStatus.setText(lastText.isEmpty()
+                                ? "No se ha reconocido texto en la imagen"
+                                : "OCR completado. Pulsa Anonimizar.");
+                    })
+                    .addOnFailureListener(e -> {
+                        if (!isCurrentDocument(version)) return;
+                        lastText = "";
+                        setBusy(false);
+                        txtStatus.setText("Error OCR: " + e.getMessage());
+                    })
+                    .addOnCompleteListener(task -> {
+                        recognizer.close();
+                        if (activeRecognizer == recognizer) activeRecognizer = null;
+                    });
         } catch (Exception e) {
-            txtStatus.setText("Error PDF: " + e.getMessage());
+            lastText = "";
+            setBusy(false);
+            if (activeRecognizer != null) {
+                activeRecognizer.close();
+                activeRecognizer = null;
+            }
+            txtStatus.setText("Error imagen: " + e.getMessage());
         }
     }
 
-    private void handleImage(Uri uri) {
-        try {
-            InputImage image = InputImage.fromFilePath(this, uri);
-
-            TextRecognizer recognizer =
-                    TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
-
-            recognizer.process(image)
-                    .addOnSuccessListener(result -> {
-                        lastText = result.getText();
-                        txtStatus.setText("OCR completado");
-                    
-                        processAnonymization();
-                    })
-                    .addOnFailureListener(e ->
-                            txtStatus.setText("Error OCR: " + e.getMessage())
-                    );
-
-        } catch (Exception e) {
-            txtStatus.setText("Error imagen: " + e.getMessage());
-        }
+    @Override
+    protected void onDestroy() {
+        destroyed = true;
+        documentVersion++;
+        documentExecutor.shutdownNow();
+        if (activeRecognizer != null) activeRecognizer.close();
+        super.onDestroy();
     }
 
     private void processAnonymization() {
