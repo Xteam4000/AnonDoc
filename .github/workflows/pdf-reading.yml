@@ -40,3 +40,17 @@ jobs:
           arch: x86_64
           disable-animations: true
           script: ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" --no-daemon connectedDebugAndroidTest
+
+      - name: Show failed test reports
+        if: failure()
+        run: |
+          python3 - <<'PY'
+          import glob
+          import xml.etree.ElementTree as ET
+          for path in glob.glob('app/build/outputs/androidTest-results/connected/**/*.xml', recursive=True):
+              root = ET.parse(path).getroot()
+              for case in root.iter('testcase'):
+                  for failure in list(case.findall('failure')) + list(case.findall('error')):
+                      print(case.attrib)
+                      print((failure.text or '')[:20000])
+          PY
