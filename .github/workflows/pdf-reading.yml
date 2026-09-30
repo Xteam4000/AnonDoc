@@ -1,0 +1,56 @@
+name: Document privacy checks
+on:
+  push:
+    branches: ["fix/pdfbox-document-reading"]
+  pull_request:
+    branches: ["main"]
+permissions:
+  contents: read
+jobs:
+  android:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [29, 34]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+          log-accepted-android-sdk-licenses: false
+      - name: Install Android 34
+        run: sdkmanager "platforms;android-34" "build-tools;34.0.0"
+      - name: Build application and test APK
+        run: ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" --no-daemon assembleDebug assembleDebugAndroidTest testDebugUnitTest
+      - name: Enable emulator acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Test PDF reading, OCR and export
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api }}
+          arch: x86_64
+          disable-animations: true
+          script: ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" --no-daemon connectedDebugAndroidTest
+
+      - name: Show failed test reports
+        if: failure()
+        run: |
+          python3 - <<'PY'
+          import glob
+          import xml.etree.ElementTree as ET
+          for path in glob.glob('app/build/outputs/androidTest-results/connected/**/*.xml', recursive=True):
+              root = ET.parse(path).getroot()
+              for case in root.iter('testcase'):
+                  for failure in list(case.findall('failure')) + list(case.findall('error')):
+                      print(case.attrib)
+                      print((failure.text or '')[:20000])
+          PY
