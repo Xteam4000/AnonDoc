@@ -1,7 +1,7 @@
 name: Document privacy checks
 on:
   push:
-    branches: ["fix/pdfbox-document-reading"]
+    branches: ["main", "fix/pdfbox-document-reading"]
   pull_request:
     branches: ["main"]
 permissions:
