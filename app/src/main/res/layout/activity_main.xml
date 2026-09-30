@@ -1,189 +1,200 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true"
+    android:orientation="vertical"
     android:background="@color/anon_bg">
 
-    <LinearLayout
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:paddingStart="22dp"
-        android:paddingTop="22dp"
-        android:paddingEnd="22dp"
-        android:paddingBottom="28dp">
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="AnonDoc"
-            android:textColor="@color/anon_text"
-            android:textSize="30sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="Protege tus documentos antes de compartirlos"
-            android:textColor="@color/anon_text_secondary"
-            android:textSize="16sp" />
-
-        <com.google.android.material.card.MaterialCardView
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            app:cardBackgroundColor="@color/anon_primary_soft"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="0dp"
-            app:strokeWidth="0dp">
+            android:orientation="vertical"
+            android:paddingStart="22dp"
+            android:paddingTop="18dp"
+            android:paddingEnd="22dp"
+            android:paddingBottom="18dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="AnonDoc"
+                android:textColor="@color/anon_text"
+                android:textSize="30sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:text="Protege tus documentos antes de compartirlos"
+                android:textColor="@color/anon_text_secondary"
+                android:textSize="15sp" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                app:cardBackgroundColor="@color/anon_primary_soft"
+                app:cardCornerRadius="22dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:padding="18dp">
+
+                    <ImageView
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:contentDescription="Protección local"
+                        android:src="@drawable/ic_lock" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="7dp"
+                        android:text="ANONIMIZAR"
+                        android:textColor="@color/anon_primary_dark"
+                        android:textSize="19sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:gravity="center"
+                        android:text="PDF e imágenes · procesamiento local"
+                        android:textColor="@color/anon_text_secondary"
+                        android:textSize="13sp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSelect"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:layout_marginTop="16dp"
+                android:gravity="start|center_vertical"
+                android:paddingStart="18dp"
+                android:text="Seleccionar PDF"
+                android:textAllCaps="false"
+                android:textColor="@color/anon_text"
+                android:textSize="16sp"
+                app:cornerRadius="17dp"
+                app:icon="@drawable/ic_document"
+                app:iconGravity="textStart"
+                app:iconPadding="16dp"
+                app:strokeColor="@color/anon_outline"
+                app:strokeWidth="1dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSelectImage"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:layout_marginTop="10dp"
+                android:gravity="start|center_vertical"
+                android:paddingStart="18dp"
+                android:text="Seleccionar imagen"
+                android:textAllCaps="false"
+                android:textColor="@color/anon_text"
+                android:textSize="16sp"
+                app:cornerRadius="17dp"
+                app:icon="@drawable/ic_image"
+                app:iconGravity="textStart"
+                app:iconPadding="16dp"
+                app:strokeColor="@color/anon_outline"
+                app:strokeWidth="1dp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnViewFiles"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:layout_marginTop="10dp"
+                android:gravity="start|center_vertical"
+                android:paddingStart="18dp"
+                android:text="Ver archivos anonimizados"
+                android:textAllCaps="false"
+                android:textColor="@color/anon_text"
+                android:textSize="16sp"
+                app:cornerRadius="17dp"
+                app:icon="@drawable/ic_folder"
+                app:iconGravity="textStart"
+                app:iconPadding="16dp"
+                app:strokeColor="@color/anon_outline"
+                app:strokeWidth="1dp" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                app:cardBackgroundColor="@color/anon_surface"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/anon_outline"
+                app:strokeWidth="1dp">
+
+                <TextView
+                    android:id="@+id/txtStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="56dp"
+                    android:gravity="center_vertical"
+                    android:padding="15dp"
+                    android:text="Preparado para seleccionar un PDF o una imagen"
+                    android:textColor="@color/anon_text_secondary"
+                    android:textSize="14sp" />
+            </com.google.android.material.card.MaterialCardView>
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
                 android:gravity="center"
-                android:orientation="vertical"
-                android:padding="24dp">
+                android:orientation="horizontal">
 
                 <ImageView
-                    android:layout_width="46dp"
-                    android:layout_height="46dp"
-                    android:contentDescription="Protección local"
+                    android:layout_width="17dp"
+                    android:layout_height="17dp"
+                    android:contentDescription="@null"
                     android:src="@drawable/ic_lock" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:text="ANONIMIZAR"
-                    android:textColor="@color/anon_primary_dark"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:gravity="center"
-                    android:text="PDF e imágenes · procesamiento local"
+                    android:layout_marginStart="7dp"
+                    android:text="Procesamiento local · tus archivos no salen del dispositivo"
                     android:textColor="@color/anon_text_secondary"
-                    android:textSize="14sp" />
+                    android:textSize="12sp" />
             </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnSelect"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="72dp"
-            android:layout_marginTop="22dp"
-            android:gravity="start|center_vertical"
-            android:paddingStart="18dp"
-            android:text="Seleccionar PDF"
-            android:textAllCaps="false"
-            android:textColor="@color/anon_text"
-            android:textSize="16sp"
-            app:cornerRadius="18dp"
-            app:icon="@drawable/ic_document"
-            app:iconGravity="textStart"
-            app:iconPadding="16dp"
-            app:strokeColor="@color/anon_outline"
-            app:strokeWidth="1dp" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnSelectImage"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="72dp"
-            android:layout_marginTop="12dp"
-            android:gravity="start|center_vertical"
-            android:paddingStart="18dp"
-            android:text="Seleccionar imagen"
-            android:textAllCaps="false"
-            android:textColor="@color/anon_text"
-            android:textSize="16sp"
-            app:cornerRadius="18dp"
-            app:icon="@drawable/ic_image"
-            app:iconGravity="textStart"
-            app:iconPadding="16dp"
-            app:strokeColor="@color/anon_outline"
-            app:strokeWidth="1dp" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnViewFiles"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="match_parent"
-            android:layout_height="72dp"
-            android:layout_marginTop="12dp"
-            android:gravity="start|center_vertical"
-            android:paddingStart="18dp"
-            android:text="Ver archivos anonimizados"
-            android:textAllCaps="false"
-            android:textColor="@color/anon_text"
-            android:textSize="16sp"
-            app:cornerRadius="18dp"
-            app:icon="@drawable/ic_folder"
-            app:iconGravity="textStart"
-            app:iconPadding="16dp"
-            app:strokeColor="@color/anon_outline"
-            app:strokeWidth="1dp" />
-
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            app:cardBackgroundColor="@color/anon_surface"
-            app:cardCornerRadius="18dp"
-            app:cardElevation="0dp"
-            app:strokeColor="@color/anon_outline"
-            app:strokeWidth="1dp">
-
-            <TextView
-                android:id="@+id/txtStatus"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:minHeight="68dp"
-                android:gravity="center_vertical"
-                android:padding="18dp"
-                android:text="Preparado para seleccionar un documento"
-                android:textColor="@color/anon_text_secondary"
-                android:textSize="14sp" />
-        </com.google.android.material.card.MaterialCardView>
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnAnon"
-            android:layout_width="match_parent"
-            android:layout_height="58dp"
-            android:layout_marginTop="18dp"
-            android:text="Anonimizar documento"
-            android:textAllCaps="false"
-            android:textSize="16sp"
-            app:backgroundTint="@color/anon_primary"
-            app:cornerRadius="18dp" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:gravity="center"
-            android:orientation="horizontal">
-
-            <ImageView
-                android:layout_width="18dp"
-                android:layout_height="18dp"
-                android:contentDescription="@null"
-                android:src="@drawable/ic_lock" />
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:text="Procesamiento local · tus archivos no salen del dispositivo"
-                android:textColor="@color/anon_text_secondary"
-                android:textSize="12sp" />
         </LinearLayout>
+    </ScrollView>
 
-    </LinearLayout>
-</ScrollView>
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnAnon"
+        android:layout_width="match_parent"
+        android:layout_height="58dp"
+        android:layout_marginStart="22dp"
+        android:layout_marginTop="10dp"
+        android:layout_marginEnd="22dp"
+        android:layout_marginBottom="14dp"
+        android:text="Anonimizar documento"
+        android:textAllCaps="false"
+        android:textSize="16sp"
+        app:backgroundTint="@color/anon_primary"
+        app:cornerRadius="18dp" />
+
+</LinearLayout>
