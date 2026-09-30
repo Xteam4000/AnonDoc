@@ -189,7 +189,7 @@ public class MainFlowTest {
     private String review(String additional) {
         onView(withId(R.id.btnAnon)).perform(click());
         onView(isAssignableFrom(EditText.class)).perform(replaceText(additional), closeSoftKeyboard());
-        onView(withText("Revisar resultado")).perform(click());
+        onView(withText("Revisar resultado")).perform(clickAfterLayout());
         AtomicReference<String> result = new AtomicReference<>();
         onView(isAssignableFrom(EditText.class)).check((view, error) -> {
             if (error != null) throw error;
@@ -316,6 +316,49 @@ public class MainFlowTest {
         OutputStore.Entry output = exportReviewed(outputUris(), null);
         scenario.recreate();
         onView(withId(R.id.btnAnon)).check(matches(not(isEnabled())));
+        onView(withId(R.id.btnViewFiles)).perform(click());
+        waitForWorker();
+        onView(withText(output.name)).check(matches(isDisplayed()));
+        onView(withText("Cerrar")).perform(click());
+    }
+
+    private void waitForVisualText(String prefix) {
+        long end=SystemClock.uptimeMillis()+60000;
+        while(SystemClock.uptimeMillis()<end) {
+            try {
+                onView(withText(startsWith(prefix))).check(matches(isDisplayed()));
+                return;
+            } catch(androidx.test.espresso.NoMatchingViewException | AssertionError notReady) {
+                SystemClock.sleep(100);
+            }
+        }
+        fail("Visual review did not reach: "+prefix);
+    }
+
+    @Test public void originalLayoutFlowsThroughVisualReviewSaveAndList() throws Exception {
+        select(pdfFixture(false,false));
+        Set<Uri> before=outputUris();
+        onView(withId(R.id.btnAnon)).perform(click());
+        onView(isAssignableFrom(EditText.class)).perform(replaceText("REFERENCIA RESERVADA"),closeSoftKeyboard());
+        onView(withText("Conservar diseño")).perform(clickAfterLayout());
+        waitForVisualText("Página 1 de 1");
+        onView(withText("Guardar PDF con diseño")).check(matches(not(isEnabled())));
+        onView(withText("Confirmar página revisada")).perform(click());
+        onView(withText("Guardar PDF con diseño")).check(matches(isEnabled()));
+        onView(withText("Guardar PDF con diseño")).perform(click());
+        onView(withText("Guardar")).perform(click());
+        waitForVisualText("Guardado en Descargas/AnonDoc");
+        OutputStore.Entry output=null;
+        for(OutputStore.Entry f:OutputStore.list(context)) if(!before.contains(f.uri)) {
+            assertNull(output); output=f;
+        }
+        assertNotNull(output);
+        assertTrue(savedText(output.uri).trim().isEmpty());
+        String visible=PdfOcrReader.read(context,output.uri,null).text;
+        assertHidden(visible);
+        assertFalse(visible.contains("REFERENCIA RESERVADA"));
+        assertTrue(visible.contains("INFORME"));
+        androidx.test.espresso.Espresso.pressBack();
         onView(withId(R.id.btnViewFiles)).perform(click());
         waitForWorker();
         onView(withText(output.name)).check(matches(isDisplayed()));
