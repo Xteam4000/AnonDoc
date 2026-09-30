@@ -1,9 +1,10 @@
 package com.anon.doc;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.text.InputType;
+import android.widget.EditText;
 import android.content.Intent;
-import android.graphics.Canvas;
-import android.graphics.Paint;
 import android.net.Uri;
 import android.os.Bundle;
 import android.widget.Button;
@@ -15,14 +16,11 @@ import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
 import com.google.mlkit.vision.text.TextRecognizer;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader;
 
-import android.graphics.pdf.PdfDocument;
 
 public class MainActivity extends Activity {
 
@@ -33,6 +31,7 @@ public class MainActivity extends Activity {
     private static final int PICK_FILE = 1;
 
     private String lastText = "";
+    private String documentWarning = "";
     private final ExecutorService documentExecutor = Executors.newSingleThreadExecutor();
     private int documentVersion = 0;
     private boolean destroyed = false;
@@ -90,6 +89,7 @@ protected void onCreate(Bundle savedInstanceState) {
             Uri uri = data.getData();
             final int version = ++documentVersion;
             lastText = "";
+            documentWarning = "";
             setBusy(false);
             if (uri == null) {
                 txtStatus.setText("No se ha recibido ningún documento");
@@ -114,25 +114,32 @@ protected void onCreate(Bundle savedInstanceState) {
 
     private void handlePdf(Uri uri, int version) {
         setBusy(true);
-        txtStatus.setText("Extrayendo texto del PDF...");
+        txtStatus.setText("Leyendo PDF y reconociendo sus imágenes...");
         documentExecutor.execute(() -> {
-            try (InputStream stream = getContentResolver().openInputStream(uri)) {
-                if (stream == null) throw new java.io.IOException("No se puede abrir el PDF");
-                String text = PdfTextReader.read(stream);
+            try {
+                PdfOcrReader.Result result = PdfOcrReader.read(getApplicationContext(), uri,
+                        (page, total) -> runOnUiThread(() -> {
+                            if (isCurrentDocument(version)) {
+                                txtStatus.setText("OCR de PDF: página " + page + " de " + total);
+                            }
+                        }));
                 runOnUiThread(() -> {
                     if (!isCurrentDocument(version)) return;
-                    lastText = text == null ? "" : text.trim();
+                    lastText = result.text.trim();
+                    documentWarning = result.emptyPages > 0
+                            ? result.emptyPages + " página(s) sin texto reconocido. Comprueba el original. "
+                            : "";
                     setBusy(false);
                     txtStatus.setText(lastText.isEmpty()
-                            ? "PDF sin texto extraíble. Puede necesitar OCR; no se ha generado una salida."
-                            : "Texto extraído; las imágenes no se han procesado con OCR. Pulsa Anonimizar.");
+                            ? "No se ha reconocido texto. No se puede exportar."
+                            : documentWarning + "Lectura y OCR completados. Pulsa Anonimizar y revisa el resultado.");
                 });
             } catch (Exception e) {
                 runOnUiThread(() -> {
                     if (!isCurrentDocument(version)) return;
                     lastText = "";
                     setBusy(false);
-                    txtStatus.setText("No se pudo leer el PDF (puede estar protegido o dañado): " + e.getMessage());
+                    txtStatus.setText("No se pudo procesar todo el PDF: " + e.getMessage());
                 });
             }
         });
@@ -190,72 +197,67 @@ protected void onCreate(Bundle savedInstanceState) {
             txtStatus.setText("Primero selecciona un documento");
             return;
         }
-
-        String anonymized = anonymizeText(lastText);
-        exportPdf(anonymized);
+        final int version = documentVersion;
+        EditText additional = new EditText(this);
+        additional.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        additional.setHint("Un nombre, dirección u otro dato por línea");
+        additional.setMinLines(3);
+        new AlertDialog.Builder(this)
+                .setTitle("Datos adicionales que quieres ocultar")
+                .setMessage("Puedes indicar nombres o datos que conozcas. Es opcional; después podrás editar el resultado.")
+                .setView(additional)
+                .setNegativeButton("Cancelar", null)
+                .setPositiveButton("Revisar resultado", (dialog, which) -> {
+                    if (!isCurrentDocument(version)) return;
+                    showReview(TextAnonymizer.anonymize(lastText,
+                            additional.getText().toString()), version);
+                })
+                .show();
     }
 
-    private String anonymizeText(String text) {
-
-        text = text.replaceAll("\\b\\d{8}[A-Z]\\b", "[DNI]");
-        text = text.replaceAll("\\b[XYZ]\\d{7}[A-Z]\\b", "[NIE]");
-        text = text.replaceAll("\\b[A-HJ-NP-SUVW]\\d{7}[0-9A-J]\\b", "[CIF]");
-        text = text.replaceAll("\\bES\\d{22}\\b", "[IBAN]");
-        text = text.replaceAll("[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+", "[EMAIL]");
-        text = text.replaceAll("\\b[6-7]\\d{8}\\b", "[TEL]");
-        text = text.replaceAll("\\b[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+\\b", "[PERSONA]");
-
-        return text;
+    private void showReview(String text, int version) {
+        EditText reviewed = new EditText(this);
+        reviewed.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        reviewed.setText(text);
+        reviewed.setMinLines(5);
+        reviewed.setMaxLines(10);
+        new AlertDialog.Builder(this)
+                .setTitle("Revisa y corrige antes de exportar")
+                .setMessage(documentWarning
+                        + "La detección automática y el OCR pueden omitir datos. Revisa nombres, direcciones y códigos. "
+                        + "Se exportará solo este texto; no se copiarán imágenes ni firmas del original.")
+                .setView(reviewed)
+                .setNegativeButton("Cancelar", null)
+                .setPositiveButton("Exportar texto revisado", (dialog, which) -> {
+                    if (!isCurrentDocument(version)) return;
+                    String finalText = reviewed.getText().toString();
+                    if (finalText.trim().isEmpty()) {
+                        txtStatus.setText("El texto revisado está vacío; no se ha exportado");
+                        return;
+                    }
+                    exportPdf(finalText, version);
+                })
+                .show();
     }
 
-    private void exportPdf(String text) {
-
-        try {
-            PdfDocument pdf = new PdfDocument();
-            Paint paint = new Paint();
-            paint.setTextSize(12);
-
-            PdfDocument.PageInfo pageInfo =
-                    new PdfDocument.PageInfo.Builder(595, 842, 1).create();
-
-            PdfDocument.Page page = pdf.startPage(pageInfo);
-            Canvas canvas = page.getCanvas();
-
-            int x = 10;
-            int y = 25;
-
-            String[] lines = text.split("\n");
-
-            for (String line : lines) {
-                canvas.drawText(line, x, y, paint);
-                y += 18;
-
-                if (y > 800) {
-                    pdf.finishPage(page);
-
-                    pageInfo =
-                            new PdfDocument.PageInfo.Builder(595, 842, 1).create();
-
-                    page = pdf.startPage(pageInfo);
-                    canvas = page.getCanvas();
-                    y = 25;
-                }
+    private void exportPdf(String text, int version) {
+        setBusy(true);
+        txtStatus.setText("Generando PDF con el texto revisado...");
+        documentExecutor.execute(() -> {
+            try {
+                File file = TextPdfExporter.export(getApplicationContext(), text);
+                runOnUiThread(() -> {
+                    if (!isCurrentDocument(version)) return;
+                    setBusy(false);
+                    txtStatus.setText("PDF de texto revisado generado: " + file.getAbsolutePath());
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    if (!isCurrentDocument(version)) return;
+                    setBusy(false);
+                    txtStatus.setText("Error al exportar: " + e.getMessage());
+                });
             }
-
-            pdf.finishPage(page);
-
-            File file = new File(getExternalFilesDir(null), "anonimizado.pdf");
-            FileOutputStream fos = new FileOutputStream(file);
-
-            pdf.writeTo(fos);
-
-            pdf.close();
-            fos.close();
-
-            txtStatus.setText("PDF generado: " + file.getAbsolutePath());
-
-        } catch (Exception e) {
-            txtStatus.setText("Error PDF: " + e.getMessage());
-        }
+        });
     }
 }
