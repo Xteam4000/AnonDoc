@@ -28,6 +28,7 @@ import com.tom_roush.pdfbox.android.PDFBoxResourceLoader;
 public class MainActivity extends Activity {
 
     private Button btnSelect;
+    private Button btnSelectImage;
     private Button btnAnon;
     private TextView txtStatus;
     private Button btnViewFiles;
@@ -46,6 +47,7 @@ public class MainActivity extends Activity {
 
     private void setBusy(boolean busy) {
         btnSelect.setEnabled(!busy);
+        if (btnSelectImage != null) btnSelectImage.setEnabled(!busy);
         btnAnon.setEnabled(!busy && (!lastText.isEmpty() || sourcePdf != null));
         if (btnViewFiles != null) btnViewFiles.setEnabled(!busy);
     }
@@ -62,6 +64,7 @@ protected void onCreate(Bundle savedInstanceState) {
         setContentView(R.layout.activity_main);
 
         btnSelect = findViewById(R.id.btnSelect);
+        btnSelectImage = findViewById(R.id.btnSelectImage);
         btnAnon = findViewById(R.id.btnAnon);
         btnViewFiles = findViewById(R.id.btnViewFiles);
         btnViewFiles.setOnClickListener(v -> showOutputFiles());
@@ -69,9 +72,10 @@ protected void onCreate(Bundle savedInstanceState) {
 
         PDFBoxResourceLoader.init(getApplicationContext());
         setBusy(false);
-        txtStatus.setText("App iniciada correctamente");
+        txtStatus.setText("Preparado para seleccionar un PDF o una imagen");
 
-        btnSelect.setOnClickListener(v -> openFilePicker());
+        btnSelect.setOnClickListener(v -> openPdfPicker());
+        btnSelectImage.setOnClickListener(v -> openImagePicker());
         btnAnon.setOnClickListener(v -> processAnonymization());
 
     } catch (Exception e) {
@@ -82,11 +86,17 @@ protected void onCreate(Bundle savedInstanceState) {
     }
 }
 
-    private void openFilePicker() {
+    private void openPdfPicker() {
+        openFilePicker("application/pdf");
+    }
+
+    private void openImagePicker() {
+        openFilePicker("image/*");
+    }
+
+    private void openFilePicker(String mimeType) {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-        intent.setType("*/*");
-        intent.putExtra(Intent.EXTRA_MIME_TYPES,
-                new String[]{"application/pdf", "image/*"});
+        intent.setType(mimeType);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         startActivityForResult(intent, PICK_FILE);
     }
