@@ -18,6 +18,7 @@ final class TextAnonymizer {
         text = hideField(text, "nif|cif", "[NIF]");
         text = hideField(text, "iban|cuenta[ \\t]+bancaria", "[IBAN]");
         text = hideField(text, "tel[eé]fono|m[oó]vil", "[TEL]");
+        text = hideField(text, "correo(?:[ \\t]+electr[oó]nico)?|e-?mail|email", "[EMAIL]");
         text = hideField(text, "fecha[ \\t]+de[ \\t]+nacimiento", "[FECHA_NACIMIENTO]");
         text = hideField(text, "csv|cve|c[oó]digo[ \\t]+seguro[ \\t]+de[ \\t]+verificaci[oó]n", "[CSV]");
 
@@ -26,7 +27,7 @@ final class TextAnonymizer {
         text = text.replaceAll("(?iu)(?<![\\p{L}\\p{N}])\\d(?:[\\s.-]?\\d){7}[\\s-]?[A-Z](?![\\p{L}\\p{N}])", "[DNI]");
         text = text.replaceAll("(?iu)(?<![\\p{L}\\p{N}])[XYZ](?:[\\s.-]?\\d){7}[\\s-]?[A-Z](?![\\p{L}\\p{N}])", "[NIE]");
         text = text.replaceAll("(?iu)(?<![\\p{L}\\p{N}])[ABCDEFGHJNPQRSUVW](?:[ \\t.-]?\\d){7}[ \\t-]?[0-9A-J](?![\\p{L}\\p{N}])", "[NIF]");
-        text = text.replaceAll("(?iu)[\\p{L}\\p{N}._%+-]+@[\\p{L}\\p{N}.-]+\\.[\\p{L}]{2,}", "[EMAIL]");
+        text = text.replaceAll("(?iu)[\\p{L}\\p{N}._%+-]+[ \\t]*@[ \\t]*[\\p{L}\\p{N}-]+(?:[ \\t]*\\.[ \\t]*[\\p{L}\\p{N}-]+)+", "[EMAIL]");
         text = text.replaceAll("(?iu)(?<![\\p{L}\\p{N}])(?:(?:\\+34|0034)[ \\t.-]*)?[6789](?:[ \\t.-]?\\d){8}(?![ \\t.-]?\\d|\\p{L})", "[TEL]");
         text = text.replaceAll("(?imu)(\\b(?:c[oó]digo[ \\t]+postal|c\\.?[ \\t]*p\\.?)"
                 + "[ \\t]*[:=]?[ \\t]*)(?:0[1-9]|[1-4]\\d|5[0-2])\\d{3}\\b", "$1[CP]");

@@ -64,6 +64,14 @@ public class TextAnonymizerTest {
         assertFalse(result.contains("2I00"));
     }
 
+    @Test public void masksEmailsWithOcrSpacesAndLabeledCorruptedValues() {
+        String result = TextAnonymizer.anonymize(
+                "juan @example.es / ana@example . es\nCorreo: juan @ example . es", "");
+        assertFalse(result.replaceAll("\\s+", "").contains("juan@example.es"));
+        assertFalse(result.replaceAll("\\s+", "").contains("ana@example.es"));
+        assertTrue(result.contains("[EMAIL]"));
+    }
+
     @Test public void doesNotMislabelMoneyAsPostalCode() {
         assertEquals("Importe: 12345 euros", TextAnonymizer.anonymize("Importe: 12345 euros", ""));
     }

@@ -8,6 +8,11 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Rect;
+import android.view.View;
+import androidx.test.espresso.UiController;
+import androidx.test.espresso.ViewAction;
+import org.hamcrest.Matcher;
 import android.graphics.Paint;
 import android.graphics.pdf.PdfDocument;
 import android.net.Uri;
@@ -196,7 +201,7 @@ public class MainFlowTest {
     private OutputStore.Entry exportReviewed(Set<Uri> before, String edited) throws Exception {
         if (edited != null) onView(isAssignableFrom(EditText.class)).perform(
                 replaceText(edited), closeSoftKeyboard());
-        onView(withText("Exportar texto revisado")).perform(click());
+        onView(withText("Exportar texto revisado")).perform(clickAfterLayout());
         waitForWorker();
         onView(withId(R.id.txtStatus)).check(matches(withText(containsString("Descargas/AnonDoc"))));
         OutputStore.Entry saved = null;
@@ -210,6 +215,27 @@ public class MainFlowTest {
         return saved;
     }
 
+    private ViewAction clickAfterLayout() {
+        return new ViewAction() {
+            @Override public Matcher<View> getConstraints() { return allOf(isDisplayed(), isEnabled()); }
+            @Override public String getDescription() { return "tap after keyboard and dialog layout settle"; }
+            @Override public void perform(UiController controller, View view) {
+                Rect previous = new Rect();
+                view.getGlobalVisibleRect(previous);
+                int stable = 0;
+                for (int i = 0; i < 20 && stable < 3; i++) {
+                    controller.loopMainThreadForAtLeast(100);
+                    Rect current = new Rect();
+                    view.getGlobalVisibleRect(current);
+                    if (current.equals(previous) && !view.isLayoutRequested()) stable++;
+                    else stable = 0;
+                    previous = current;
+                }
+                click().perform(controller, view);
+            }
+        };
+    }
+
     private String savedText(Uri uri) throws Exception {
         try (InputStream input = context.getContentResolver().openInputStream(uri)) {
             assertNotNull(input);
@@ -220,7 +246,8 @@ public class MainFlowTest {
     private void assertHidden(String text) {
         assertFalse(text.contains("12345678Z"));
         assertFalse(text.contains("JUAN PEREZ"));
-        assertFalse(text.contains("juan@example.es"));
+        assertFalse(text.replaceAll("\\s+", "").toLowerCase(java.util.Locale.ROOT)
+                .contains("juan@example.es"));
     }
 
     @Test public void digitalPdfFlowsThroughReviewSaveListAndViewerIntent() throws Exception {
