@@ -169,8 +169,10 @@ public class VisualReviewActivity extends Activity {
             if(bitmap==null) return;
             float fit=Math.min((float)getWidth()/bitmap.getWidth(),(float)getHeight()/bitmap.getHeight());
             float scale=fit*zoom;
-            panX=Math.max(-getWidth()*zoom,Math.min(getWidth()*zoom,panX));
-            panY=Math.max(-getHeight()*zoom,Math.min(getHeight()*zoom,panY));
+            float maxX=Math.max(0,(bitmap.getWidth()*scale-getWidth())/2);
+            float maxY=Math.max(0,(bitmap.getHeight()*scale-getHeight())/2);
+            panX=Math.max(-maxX,Math.min(maxX,panX));
+            panY=Math.max(-maxY,Math.min(maxY,panY));
             transform.reset(); transform.postScale(scale,scale);
             transform.postTranslate((getWidth()-bitmap.getWidth()*scale)/2+panX,(getHeight()-bitmap.getHeight()*scale)/2+panY);
             transform.invert(inverse);
