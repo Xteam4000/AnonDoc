@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="anon_bg">#F4F7F8</color>
+    <color name="anon_surface">#FFFFFF</color>
+    <color name="anon_primary">#176B72</color>
+    <color name="anon_primary_dark">#0F5258</color>
+    <color name="anon_primary_soft">#E2F1F2</color>
+    <color name="anon_text">#182022</color>
+    <color name="anon_text_secondary">#5D696C</color>
+    <color name="anon_outline">#D8E1E3</color>
+    <color name="anon_success">#287A4B</color>
+</resources>
