@@ -345,6 +345,16 @@ public class MainFlowTest {
         onView(withText("Guardar PDF con diseño")).check(matches(not(isEnabled())));
         onView(withText("Confirmar página revisada")).perform(click());
         onView(withText("Guardar PDF con diseño")).check(matches(isEnabled()));
+        onView(withContentDescription("Página original con zonas ocultas")).perform(
+            new androidx.test.espresso.action.GeneralSwipeAction(
+                androidx.test.espresso.action.Swipe.SLOW,
+                v->{int[] loc=new int[2]; v.getLocationOnScreen(loc); return new float[]{loc[0]+v.getWidth()*0.45f,loc[1]+v.getHeight()*0.55f};},
+                v->{int[] loc=new int[2]; v.getLocationOnScreen(loc); return new float[]{loc[0]+v.getWidth()*0.60f,loc[1]+v.getHeight()*0.70f};},
+                androidx.test.espresso.action.Press.FINGER));
+        onView(withText("Guardar PDF con diseño")).check(matches(not(isEnabled())));
+        onView(withText("Deshacer")).perform(click());
+        onView(withText("Guardar PDF con diseño")).check(matches(not(isEnabled())));
+        onView(withText("Confirmar página revisada")).perform(click());
         onView(withText("Guardar PDF con diseño")).perform(click());
         onView(withText("Guardar")).perform(click());
         waitForVisualText("Guardado en Descargas/AnonDoc");
@@ -363,5 +373,16 @@ public class MainFlowTest {
         waitForWorker();
         onView(withText(output.name)).check(matches(isDisplayed()));
         onView(withText("Cerrar")).perform(click());
+    }
+
+    @Test public void cancellingVisualReviewDoesNotPublishAnything() throws Exception {
+        select(pdfFixture(false,false));
+        Set<Uri> before=outputUris();
+        onView(withId(R.id.btnAnon)).perform(click());
+        onView(withText("Conservar diseño")).perform(clickAfterLayout());
+        waitForVisualText("Página 1 de 1");
+        androidx.test.espresso.Espresso.pressBack();
+        assertEquals(before,outputUris());
+        onView(withId(R.id.btnAnon)).check(matches(isEnabled()));
     }
 }

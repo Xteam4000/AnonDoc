@@ -45,6 +45,7 @@ public class VisualPdfTest {
     }
     @Test public void preservesPageLayoutAndLogoButDestroysMaskedPixelsAndOriginalObjects() throws Exception {
         File source=fixture(), output=null; VisualPdf.Session session=null;
+        byte[] originalBytes=java.nio.file.Files.readAllBytes(source.toPath());
         try {
             session=VisualPdf.prepare(context,Uri.fromFile(source),"",null);
             assertEquals(2,session.pages.size());
@@ -81,7 +82,7 @@ public class VisualPdfTest {
                     assertEquals(1,images);
                 }
             }
-            assertTrue("Original remains readable",source.length()>0);
+            assertArrayEquals("Original must not change",originalBytes,java.nio.file.Files.readAllBytes(source.toPath()));
             File dir=session.directory; session.close(); assertFalse(dir.exists()); session=null;
         } finally { source.delete(); if(output!=null) output.delete(); if(session!=null) session.close(); }
     }
@@ -105,5 +106,38 @@ public class VisualPdfTest {
     int countDirectories() {
         File[] dirs=context.getCacheDir().listFiles(f->f.isDirectory() && f.getName().startsWith("visual_"));
         return dirs==null?0:dirs.length;
+    }
+    @Test public void rotatedImageOnlyPageKeepsRenderedOrientationAndRequiresReview() throws Exception {
+        File source=File.createTempFile("rotated_", ".pdf",context.getCacheDir());
+        File output=null; VisualPdf.Session session=null;
+        try {
+            try(PDDocument pdf=new PDDocument()) {
+                PDPage page=new PDPage(new com.tom_roush.pdfbox.pdmodel.common.PDRectangle(300,500));
+                page.setRotation(90); pdf.addPage(page);
+                try(com.tom_roush.pdfbox.pdmodel.PDPageContentStream out=new com.tom_roush.pdfbox.pdmodel.PDPageContentStream(pdf,page)) {
+                    out.setNonStrokingColor(0,0,255); out.addRect(30,50,80,120); out.fill();
+                }
+                pdf.save(source);
+            }
+            session=VisualPdf.prepare(context,Uri.fromFile(source),"",null);
+            VisualPdf.Page page=session.pages.get(0);
+            assertTrue(page.emptyOcr); assertFalse(page.reviewed);
+            page.reviewed=true; output=VisualPdf.export(context,session);
+            Bitmap original=page.bitmap();
+            try(PDDocument pdf=PDDocument.load(output)) {
+                PDPage saved=pdf.getPage(0);
+                assertEquals(page.pointsWidth,saved.getMediaBox().getWidth(),0.01);
+                assertEquals(page.pointsHeight,saved.getMediaBox().getHeight(),0.01);
+                for(COSName name:saved.getResources().getXObjectNames()) {
+                    Bitmap image=((PDImageXObject)saved.getResources().getXObject(name)).getImage();
+                    try {
+                        assertEquals(original.getWidth(),image.getWidth());
+                        assertEquals(original.getHeight(),image.getHeight());
+                        for(int y=10;y<image.getHeight();y+=23) for(int x=10;x<image.getWidth();x+=23)
+                            assertEquals(original.getPixel(x,y),image.getPixel(x,y));
+                    } finally { image.recycle(); }
+                }
+            } finally { original.recycle(); }
+        } finally { source.delete(); if(output!=null) output.delete(); if(session!=null) session.close(); }
     }
 }

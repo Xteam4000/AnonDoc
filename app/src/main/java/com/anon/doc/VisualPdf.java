@@ -107,6 +107,8 @@ final class VisualPdf {
                 }
             }
             source.delete(); success=true; return session;
+        } catch(OutOfMemoryError lowMemory) {
+            throw new IOException("Memoria insuficiente para conservar el diseño; no se ha exportado",lowMemory);
         } finally { if(!success) session.close(); }
     }
     private static boolean changed(String text,String additional) {
@@ -155,6 +157,8 @@ final class VisualPdf {
                 } finally { original.recycle(); if(censored!=null) censored.recycle(); }
             }
             pdf.save(file); success=true; return file;
+        } catch(OutOfMemoryError lowMemory) {
+            throw new IOException("Memoria insuficiente para generar el PDF; no se ha publicado",lowMemory);
         } finally { if(!success) file.delete(); }
     }
     private static void interrupted() throws InterruptedException {
