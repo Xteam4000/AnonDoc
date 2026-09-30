@@ -385,4 +385,22 @@ public class MainFlowTest {
         assertEquals(before,outputUris());
         onView(withId(R.id.btnAnon)).check(matches(isEnabled()));
     }
+
+    @Test public void pdfWithoutRecognizedTextStillAllowsVisualReview() throws Exception {
+        File source=File.createTempFile("blank_fixture_",".pdf",context.getCacheDir());
+        Uri uri;
+        try {
+            try(PDDocument pdf=new PDDocument()) { pdf.addPage(new PDPage()); pdf.save(source); }
+            uri=OutputStore.publishToDownloads(context,source);
+        } finally { source.delete(); }
+        select(uri);
+        onView(withId(R.id.txtStatus)).check(matches(withText(containsString("Conservar diseño"))));
+        onView(withId(R.id.btnAnon)).check(matches(isEnabled()));
+        onView(withId(R.id.btnAnon)).perform(click());
+        onView(withText("Conservar diseño")).perform(clickAfterLayout());
+        waitForVisualText("Página 1 de 1");
+        onView(withText(startsWith("Página 1 de 1"))).check(matches(withText(containsString("Sin texto OCR"))));
+        onView(withText("Guardar PDF con diseño")).check(matches(not(isEnabled())));
+        androidx.test.espresso.Espresso.pressBack();
+    }
 }

@@ -182,7 +182,7 @@ protected void onCreate(Bundle savedInstanceState) {
                             : "";
                     setBusy(false);
                     txtStatus.setText(lastText.isEmpty()
-                            ? "No se ha reconocido texto. No se puede exportar."
+                            ? "No se ha reconocido texto. Pulsa Anonimizar y Conservar diseño para revisar las páginas."
                             : documentWarning + "Lectura y OCR completados. Pulsa Anonimizar y revisa el resultado.");
                 });
             } catch (Exception e) {
