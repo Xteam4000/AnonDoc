@@ -38,7 +38,7 @@ public class MainActivity extends Activity {
     private static final int PICK_FILE = 1;
 
     private String lastText = "";
-    private Uri sourcePdf;
+    private Uri sourceDocument;
     private String documentWarning = "";
     private final ExecutorService documentExecutor = Executors.newSingleThreadExecutor();
     private int documentVersion = 0;
@@ -48,7 +48,7 @@ public class MainActivity extends Activity {
     private void setBusy(boolean busy) {
         btnSelect.setEnabled(!busy);
         if (btnSelectImage != null) btnSelectImage.setEnabled(!busy);
-        btnAnon.setEnabled(!busy && (!lastText.isEmpty() || sourcePdf != null));
+        btnAnon.setEnabled(!busy && (!lastText.isEmpty() || sourceDocument != null));
         if (btnViewFiles != null) btnViewFiles.setEnabled(!busy);
     }
 
@@ -148,7 +148,7 @@ protected void onCreate(Bundle savedInstanceState) {
             Uri uri = data.getData();
             final int version = ++documentVersion;
             lastText = "";
-            sourcePdf = null;
+            sourceDocument = null;
             documentWarning = "";
             setBusy(false);
             if (uri == null) {
@@ -186,7 +186,7 @@ protected void onCreate(Bundle savedInstanceState) {
                 runOnUiThread(() -> {
                     if (!isCurrentDocument(version)) return;
                     lastText = result.text.trim();
-                    sourcePdf = uri;
+                    sourceDocument = uri;
                     documentWarning = result.emptyPages > 0
                             ? result.emptyPages + " página(s) sin texto reconocido. Comprueba el original. "
                             : "";
@@ -218,6 +218,7 @@ protected void onCreate(Bundle savedInstanceState) {
                     .addOnSuccessListener(result -> {
                         if (!isCurrentDocument(version)) return;
                         lastText = result.getText().trim();
+                        sourceDocument = uri;
                         setBusy(false);
                         txtStatus.setText(lastText.isEmpty()
                                 ? "No se ha reconocido texto en la imagen"
@@ -255,7 +256,7 @@ protected void onCreate(Bundle savedInstanceState) {
     }
 
     private void processAnonymization() {
-        if ((lastText == null || lastText.isEmpty()) && sourcePdf == null) {
+        if ((lastText == null || lastText.isEmpty()) && sourceDocument == null) {
             txtStatus.setText("Primero selecciona un documento");
             return;
         }
@@ -266,17 +267,17 @@ protected void onCreate(Bundle savedInstanceState) {
         additional.setMinLines(3);
         AlertDialog.Builder options = new AlertDialog.Builder(this)
                 .setTitle("Datos adicionales que quieres ocultar")
-                .setMessage("Puedes indicar nombres o datos que conozcas. Es opcional; después podrás editar el resultado.")
+                .setMessage("Puedes indicar nombres o datos que conozcas. Después revisarás visualmente todas las zonas antes de guardar.")
                 .setView(additional)
                 .setNegativeButton("Cancelar", null)
-                .setPositiveButton("Revisar resultado", (dialog, which) -> {
+                .setNeutralButton("Solo texto editable", (dialog, which) -> {
                     if (!isCurrentDocument(version)) return;
                     showReview(TextAnonymizer.anonymize(lastText,
                             additional.getText().toString()), version);
                 });
-        if (sourcePdf != null) options.setNeutralButton("Conservar diseño", (dialog, which) -> {
+        if (sourceDocument != null) options.setPositiveButton("Conservar diseño", (dialog, which) -> {
             if (!isCurrentDocument(version)) return;
-            Intent visual = new Intent(this, VisualReviewActivity.class).setData(sourcePdf)
+            Intent visual = new Intent(this, VisualReviewActivity.class).setData(sourceDocument)
                     .putExtra("additional", additional.getText().toString())
                     .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             startActivity(visual);

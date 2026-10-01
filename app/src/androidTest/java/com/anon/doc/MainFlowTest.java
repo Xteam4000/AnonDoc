@@ -189,7 +189,7 @@ public class MainFlowTest {
     private String review(String additional) {
         onView(withId(R.id.btnAnon)).perform(click());
         onView(isAssignableFrom(EditText.class)).perform(replaceText(additional), closeSoftKeyboard());
-        onView(withText("Revisar resultado")).perform(clickAfterLayout());
+        onView(withText("Solo texto editable")).perform(clickAfterLayout());
         AtomicReference<String> result = new AtomicReference<>();
         onView(isAssignableFrom(EditText.class)).check((view, error) -> {
             if (error != null) throw error;

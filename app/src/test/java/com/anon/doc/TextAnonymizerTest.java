@@ -75,4 +75,26 @@ public class TextAnonymizerTest {
     @Test public void doesNotMislabelMoneyAsPostalCode() {
         assertEquals("Importe: 12345 euros", TextAnonymizer.anonymize("Importe: 12345 euros", ""));
     }
+
+    @Test public void masksUnlabelledRecipientBlockOnEnvelope() {
+        String result=TextAnonymizer.anonymize("JUAN PEREZ LOPEZ\nCalle Mayor 14, 2 B\n02001 Albacete","");
+        assertFalse(result.contains("JUAN"));
+        assertFalse(result.contains("Mayor"));
+        assertFalse(result.contains("02001"));
+        assertFalse(result.contains("Albacete"));
+    }
+
+    @Test public void masksInvoiceValuesPlacedBelowLabels() {
+        java.util.List<String> lines=java.util.Arrays.asList(
+                "DATOS DEL CLIENTE","María García López","Dirección de suministro",
+                "Avenida de España 42","02002 Albacete","TOTAL FACTURA","12345 euros");
+        boolean[] sensitive=TextAnonymizer.sensitiveLines(lines,"");
+        assertTrue(sensitive[1]); assertTrue(sensitive[3]); assertTrue(sensitive[4]);
+        assertFalse(sensitive[5]); assertFalse(sensitive[6]);
+    }
+
+    @Test public void doesNotMaskOrdinaryCapitalizedProseWithoutPostalContext() {
+        String text="Sentencia del Tribunal Supremo\nInforme de consumo eléctrico\nImporte: 12345 euros";
+        assertEquals(text,TextAnonymizer.anonymize(text,""));
+    }
 }
