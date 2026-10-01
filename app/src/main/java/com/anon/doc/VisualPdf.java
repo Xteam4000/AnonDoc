@@ -5,6 +5,7 @@ import android.graphics.*;
 import android.graphics.pdf.PdfRenderer;
 import android.net.Uri;
 import android.os.ParcelFileDescriptor;
+import androidx.exifinterface.media.ExifInterface;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.Tasks;
 import com.google.mlkit.vision.common.InputImage;
@@ -51,8 +52,18 @@ final class VisualPdf {
         File directory=File.createTempFile("visual_", "", context.getCacheDir());
         if(!directory.delete() || !directory.mkdir()) throw new IOException("No se puede preparar la revisión");
         Session session=new Session(directory);
-        File source=new File(directory,"source.pdf");
         boolean success=false;
+        String mime=context.getContentResolver().getType(uri);
+        String path=uri.getPath()==null?"":uri.getPath().toLowerCase(Locale.ROOT);
+        boolean imageSource=(mime!=null && mime.toLowerCase(Locale.ROOT).startsWith("image/"))
+                || path.endsWith(".jpg") || path.endsWith(".jpeg") || path.endsWith(".png")
+                || path.endsWith(".webp") || path.endsWith(".heic") || path.endsWith(".heif");
+        if(imageSource) {
+            try { prepareImage(context,uri,additional,session,progress); success=true; return session; }
+            catch(OutOfMemoryError lowMemory) { throw new IOException("Memoria insuficiente para conservar la imagen",lowMemory); }
+            finally { if(!success) session.close(); }
+        }
+        File source=new File(directory,"source.pdf");
         try {
             try(InputStream in=context.getContentResolver().openInputStream(uri);
                 OutputStream out=new FileOutputStream(source)) {
@@ -86,18 +97,7 @@ final class VisualPdf {
                         bitmap.eraseColor(Color.WHITE);
                         page.render(bitmap,null,null,PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
                         Text recognized=recognize(bitmap);
-                        List<RectF> boxes=new ArrayList<>();
-                        for(Text.TextBlock block:recognized.getTextBlocks()) {
-                            boolean lineChanged=false;
-                            for(Text.Line line:block.getLines()) {
-                                if(changed(line.getText(),additional)) {
-                                    addBox(boxes,line.getBoundingBox(),w,h); lineChanged=true;
-                                }
-                            }
-                            // Covers fields/values spanning lines; conservative whole-block concealment.
-                            if(!lineChanged && changed(block.getText(),additional))
-                                addBox(boxes,block.getBoundingBox(),w,h);
-                        }
+                        List<RectF> boxes=detectBoxes(recognized,additional,w,h);
                         File image=new File(directory,"page_"+i+".png");
                         try(OutputStream out=new FileOutputStream(image)) {
                             if(!bitmap.compress(Bitmap.CompressFormat.PNG,100,out)) throw new IOException("No se puede preparar la página");
@@ -111,8 +111,68 @@ final class VisualPdf {
             throw new IOException("Memoria insuficiente para conservar el diseño; no se ha exportado",lowMemory);
         } finally { if(!success) session.close(); }
     }
-    private static boolean changed(String text,String additional) {
-        return !text.equals(TextAnonymizer.anonymize(text,additional));
+
+    private static void prepareImage(Context context,Uri uri,String additional,Session session,Progress progress) throws Exception {
+        if(progress!=null) progress.page(1,1);
+        Bitmap bitmap=decodeOrientedImage(context,uri);
+        try {
+            if(bitmap==null) throw new IOException("No se puede leer la imagen");
+            long pixels=(long)bitmap.getWidth()*bitmap.getHeight();
+            if(pixels>24000000L) {
+                float scale=(float)Math.sqrt(24000000d/pixels);
+                Bitmap reduced=Bitmap.createScaledBitmap(bitmap,Math.max(1,Math.round(bitmap.getWidth()*scale)),
+                        Math.max(1,Math.round(bitmap.getHeight()*scale)),true);
+                if(reduced!=bitmap) { bitmap.recycle(); bitmap=reduced; }
+            }
+            Text recognized=recognize(bitmap);
+            List<RectF> boxes=detectBoxes(recognized,additional,bitmap.getWidth(),bitmap.getHeight());
+            File image=new File(session.directory,"page_0.png");
+            try(OutputStream out=new FileOutputStream(image)) {
+                if(!bitmap.compress(Bitmap.CompressFormat.PNG,100,out)) throw new IOException("No se puede preparar la imagen");
+            }
+            // Use a normal PDF scale while preserving the exact aspect ratio.
+            int pw=612, ph=Math.max(1,Math.round(612f*bitmap.getHeight()/bitmap.getWidth()));
+            session.pages.add(new Page(image,bitmap.getWidth(),bitmap.getHeight(),pw,ph,boxes,
+                    recognized.getText().trim().isEmpty()));
+        } finally { if(bitmap!=null && !bitmap.isRecycled()) bitmap.recycle(); }
+    }
+
+    private static Bitmap decodeOrientedImage(Context context,Uri uri) throws Exception {
+        Bitmap bitmap;
+        try(InputStream in=context.getContentResolver().openInputStream(uri)) {
+            if(in==null) throw new IOException("No se puede abrir la imagen");
+            bitmap=BitmapFactory.decodeStream(in);
+        }
+        if(bitmap==null) return null;
+        int orientation=ExifInterface.ORIENTATION_NORMAL;
+        try(InputStream in=context.getContentResolver().openInputStream(uri)) {
+            if(in!=null) orientation=new ExifInterface(in).getAttributeInt(ExifInterface.TAG_ORIENTATION,ExifInterface.ORIENTATION_NORMAL);
+        } catch(IOException ignored) {}
+        Matrix matrix=new Matrix();
+        switch(orientation) {
+            case ExifInterface.ORIENTATION_FLIP_HORIZONTAL: matrix.setScale(-1,1); break;
+            case ExifInterface.ORIENTATION_ROTATE_180: matrix.setRotate(180); break;
+            case ExifInterface.ORIENTATION_FLIP_VERTICAL: matrix.setScale(1,-1); break;
+            case ExifInterface.ORIENTATION_TRANSPOSE: matrix.setRotate(90); matrix.postScale(-1,1); break;
+            case ExifInterface.ORIENTATION_ROTATE_90: matrix.setRotate(90); break;
+            case ExifInterface.ORIENTATION_TRANSVERSE: matrix.setRotate(-90); matrix.postScale(-1,1); break;
+            case ExifInterface.ORIENTATION_ROTATE_270: matrix.setRotate(-90); break;
+            default: return bitmap;
+        }
+        Bitmap oriented=Bitmap.createBitmap(bitmap,0,0,bitmap.getWidth(),bitmap.getHeight(),matrix,true);
+        if(oriented!=bitmap) bitmap.recycle();
+        return oriented;
+    }
+
+    private static List<RectF> detectBoxes(Text recognized,String additional,int w,int h) throws IOException {
+        List<Text.Line> allLines=new ArrayList<>();
+        for(Text.TextBlock block:recognized.getTextBlocks()) allLines.addAll(block.getLines());
+        List<String> values=new ArrayList<>();
+        for(Text.Line line:allLines) values.add(line.getText());
+        boolean[] sensitive=TextAnonymizer.sensitiveLines(values,additional);
+        List<RectF> boxes=new ArrayList<>();
+        for(int i=0;i<allLines.size();i++) if(sensitive[i]) addBox(boxes,allLines.get(i).getBoundingBox(),w,h);
+        return boxes;
     }
     private static void addBox(List<RectF> boxes,Rect r,int w,int h) throws IOException {
         if(r==null || r.isEmpty()) throw new IOException("Dato detectado sin posición; revisa el original");
