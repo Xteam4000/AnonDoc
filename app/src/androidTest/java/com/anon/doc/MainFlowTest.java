@@ -282,7 +282,7 @@ public class MainFlowTest {
         String stored = savedText(output.uri);
         assertHidden(stored);
         assertTrue(stored.contains("REVISION CONFIRMADA"));
-        onView(withId(R.id.btnViewFiles)).perform(click());
+        onView(withId(R.id.btnViewFiles)).perform(scrollTo(), click());
         waitForVisualText(output.name);
         onView(withText(output.name)).check(matches(isDisplayed()));
         onView(withText("Abrir")).perform(click());
@@ -337,7 +337,7 @@ public class MainFlowTest {
         OutputStore.Entry output = exportReviewed(outputUris(), null);
         scenario.recreate();
         onView(withId(R.id.btnAnon)).check(matches(not(isEnabled())));
-        onView(withId(R.id.btnViewFiles)).perform(click());
+        onView(withId(R.id.btnViewFiles)).perform(scrollTo(), click());
         waitForVisualText(output.name);
         onView(withText(output.name)).check(matches(isDisplayed()));
         androidx.test.espresso.Espresso.pressBack();
@@ -347,7 +347,9 @@ public class MainFlowTest {
         long end=SystemClock.uptimeMillis()+60000;
         while(SystemClock.uptimeMillis()<end) {
             try {
-                onView(withText(startsWith(prefix))).check(matches(isDisplayed()));
+                Matcher<View> expected = prefix.startsWith("Página ")
+                        ? withText(prefix) : withText(startsWith(prefix));
+                onView(allOf(expected, isDisplayed())).check(matches(isDisplayed()));
                 return;
             } catch(androidx.test.espresso.NoMatchingViewException | AssertionError notReady) {
                 SystemClock.sleep(100);
@@ -386,7 +388,7 @@ public class MainFlowTest {
         assertFalse(visible.contains("REFERENCIA RESERVADA"));
         assertTrue(visible.contains("INFORME"));
         androidx.test.espresso.Espresso.pressBack();
-        onView(withId(R.id.btnViewFiles)).perform(click());
+        onView(withId(R.id.btnViewFiles)).perform(scrollTo(), click());
         waitForVisualText(output.name);
         onView(withText(output.name)).check(matches(isDisplayed()));
         androidx.test.espresso.Espresso.pressBack();
