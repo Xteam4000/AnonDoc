@@ -98,8 +98,10 @@ public class OutputFilesActivity extends Activity {
             LinearLayout actions = new LinearLayout(this);
             actions.setGravity(Gravity.END);
             MaterialButton open = button("Abrir", true);
+            open.setContentDescription("Abrir " + entry.name);
             open.setOnClickListener(v -> open(entry.uri));
             MaterialButton delete = button("Eliminar", false);
+            delete.setContentDescription("Eliminar " + entry.name);
             delete.setOnClickListener(v -> confirmDelete(entry));
             LinearLayout.LayoutParams action = new LinearLayout.LayoutParams(0, dp(46), 1);
             action.setMargins(dp(3), dp(7), dp(3), 0);
