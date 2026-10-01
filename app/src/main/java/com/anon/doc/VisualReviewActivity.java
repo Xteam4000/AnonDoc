@@ -104,7 +104,7 @@ public class VisualReviewActivity extends Activity {
 
     private LinearLayout row(){LinearLayout r=new LinearLayout(this);r.setOrientation(LinearLayout.HORIZONTAL);r.setPadding(0,0,0,dp(7));return r;}
     private LinearLayout.LayoutParams weight(){LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,dp(48),1);p.setMargins(dp(3),0,dp(3),0);return p;}
-    private MaterialButton button(String text,boolean strong,Runnable action){MaterialButton b=new MaterialButton(this);b.setText(text);b.setTextAllCaps(false);b.setTextSize(14);b.setCornerRadius(dp(15));b.setBackgroundTintList(ColorStateList.valueOf(strong?primary:surface));b.setTextColor(strong?Color.WHITE:primaryDark);b.setStrokeColor(ColorStateList.valueOf(primary));b.setStrokeWidth(strong?0:dp(1));b.setOnClickListener(v->action.run());return b;}
+    private MaterialButton button(String text,boolean strong,Runnable action){MaterialButton b=new MaterialButton(this);b.setText(text);b.setAllCaps(false);b.setTextSize(14);b.setCornerRadius(dp(15));b.setBackgroundTintList(ColorStateList.valueOf(strong?primary:surface));b.setTextColor(strong?Color.WHITE:primaryDark);b.setStrokeColor(ColorStateList.valueOf(primary));b.setStrokeWidth(strong?0:dp(1));b.setOnClickListener(v->action.run());return b;}
     private int dp(int value){return Math.round(value*getResources().getDisplayMetrics().density);}
 
     final class PageView extends View{
