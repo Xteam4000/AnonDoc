@@ -95,6 +95,29 @@ public class VisualPdfTest {
             catch(IOException expected) { assertTrue(expected.getMessage().contains("todas")); }
         } finally { source.delete(); if(session!=null) session.close(); }
     }
+    @Test public void imageSourceBecomesVisualPdfAndMasksPostalRecipient() throws Exception {
+        File source=File.createTempFile("envelope_", ".png",context.getCacheDir());
+        File output=null; VisualPdf.Session session=null;
+        Bitmap image=Bitmap.createBitmap(1200,800,Bitmap.Config.ARGB_8888);
+        image.eraseColor(Color.WHITE); Canvas canvas=new Canvas(image); Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);
+        paint.setColor(Color.BLUE); canvas.drawRect(850,60,1100,180,paint);
+        paint.setColor(Color.BLACK); paint.setTextSize(48);
+        canvas.drawText("JUAN PEREZ LOPEZ",100,300,paint);
+        canvas.drawText("Calle Mayor 14",100,380,paint);
+        canvas.drawText("02001 Albacete",100,460,paint);
+        try(FileOutputStream out=new FileOutputStream(source)) { image.compress(Bitmap.CompressFormat.PNG,100,out); }
+        image.recycle();
+        try {
+            session=VisualPdf.prepare(context,Uri.fromFile(source),"",null);
+            assertEquals(1,session.pages.size());
+            assertTrue("Postal recipient must produce automatic masks",session.pages.get(0).automatic>=3);
+            session.pages.get(0).reviewed=true; output=VisualPdf.export(context,session);
+            try(PDDocument pdf=PDDocument.load(output)) {
+                assertEquals(1,pdf.getNumberOfPages());
+                assertTrue(new PDFTextStripper().getText(pdf).trim().isEmpty());
+            }
+        } finally { source.delete(); if(output!=null) output.delete(); if(session!=null) session.close(); }
+    }
     @Test public void malformedPdfLeavesNoWorkingCopies() throws Exception {
         File file=File.createTempFile("broken_visual_", ".pdf",context.getCacheDir());
         int before=countDirectories();
