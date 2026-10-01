@@ -28,6 +28,13 @@ jobs:
         run: sdkmanager "platforms;android-34" "build-tools;34.0.0"
       - name: Build application and test APK
         run: ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" --no-daemon assembleDebug assembleDebugAndroidTest testDebugUnitTest
+      - name: Publish installable APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: AnonDoc-debug-api-${{ matrix.api }}
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
       - name: Enable emulator acceleration
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
