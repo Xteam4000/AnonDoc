@@ -285,8 +285,7 @@ public class MainFlowTest {
         onView(withId(R.id.btnViewFiles)).perform(scrollTo(), click());
         waitForVisualText(output.name);
         onView(withText(output.name)).check(matches(isDisplayed()));
-        onView(allOf(withText("Abrir"), isDescendantOfA(hasDescendant(withText(output.name)))))
-                .perform(click());
+        onView(withContentDescription("Abrir " + output.name)).perform(click());
         intended(allOf(hasAction(Intent.ACTION_VIEW), hasType("application/pdf"), hasData(output.uri)));
         boolean grant = false;
         for (Intent intent : Intents.getIntents()) {
