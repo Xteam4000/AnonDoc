@@ -32,6 +32,8 @@ public class MainActivity extends Activity {
     private Button btnAnon;
     private TextView txtStatus;
     private Button btnViewFiles;
+    private Button btnTextOnly;
+    private EditText editAdditional;
     private File pendingSave;
     private static final int SAVE_PDF = 2;
 
@@ -49,6 +51,7 @@ public class MainActivity extends Activity {
         btnSelect.setEnabled(!busy);
         if (btnSelectImage != null) btnSelectImage.setEnabled(!busy);
         btnAnon.setEnabled(!busy && (!lastText.isEmpty() || sourceDocument != null));
+        if (btnTextOnly != null) btnTextOnly.setEnabled(!busy && !lastText.isEmpty());
         if (btnViewFiles != null) btnViewFiles.setEnabled(!busy);
     }
 
@@ -67,7 +70,9 @@ protected void onCreate(Bundle savedInstanceState) {
         btnSelectImage = findViewById(R.id.btnSelectImage);
         btnAnon = findViewById(R.id.btnAnon);
         btnViewFiles = findViewById(R.id.btnViewFiles);
-        btnViewFiles.setOnClickListener(v -> showOutputFiles());
+        btnTextOnly = findViewById(R.id.btnTextOnly);
+        editAdditional = findViewById(R.id.editAdditional);
+        btnViewFiles.setOnClickListener(v -> startActivity(new Intent(this, OutputFilesActivity.class)));
         txtStatus = findViewById(R.id.txtStatus);
 
         PDFBoxResourceLoader.init(getApplicationContext());
@@ -76,7 +81,14 @@ protected void onCreate(Bundle savedInstanceState) {
 
         btnSelect.setOnClickListener(v -> openPdfPicker());
         btnSelectImage.setOnClickListener(v -> openImagePicker());
-        btnAnon.setOnClickListener(v -> processAnonymization());
+        btnAnon.setOnClickListener(v -> startVisualReview());
+        btnTextOnly.setOnClickListener(v -> {
+            if (lastText == null || lastText.isEmpty()) {
+                txtStatus.setText("Selecciona primero un documento con texto reconocido");
+                return;
+            }
+            showReview(TextAnonymizer.anonymize(lastText, editAdditional.getText().toString()), documentVersion);
+        });
 
     } catch (Exception e) {
         // Si la app iba a crashear, lo mostramos aquí
@@ -192,7 +204,7 @@ protected void onCreate(Bundle savedInstanceState) {
                             : "";
                     setBusy(false);
                     txtStatus.setText(lastText.isEmpty()
-                            ? "No se ha reconocido texto. Pulsa Anonimizar y Conservar diseño para revisar las páginas."
+                            ? "No se ha reconocido texto. Pulsa Anonimizar y revisa visualmente todas las páginas."
                             : documentWarning + "Lectura y OCR completados. Pulsa Anonimizar y revisa el resultado.");
                 });
             } catch (Exception e) {
@@ -255,34 +267,16 @@ protected void onCreate(Bundle savedInstanceState) {
         super.onDestroy();
     }
 
-    private void processAnonymization() {
+    private void startVisualReview() {
         if ((lastText == null || lastText.isEmpty()) && sourceDocument == null) {
             txtStatus.setText("Primero selecciona un documento");
             return;
         }
-        final int version = documentVersion;
-        EditText additional = new EditText(this);
-        additional.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE);
-        additional.setHint("Un nombre, dirección u otro dato por línea");
-        additional.setMinLines(3);
-        AlertDialog.Builder options = new AlertDialog.Builder(this)
-                .setTitle("Datos adicionales que quieres ocultar")
-                .setMessage("Puedes indicar nombres o datos que conozcas. Después revisarás visualmente todas las zonas antes de guardar.")
-                .setView(additional)
-                .setNegativeButton("Cancelar", null)
-                .setNeutralButton("Solo texto editable", (dialog, which) -> {
-                    if (!isCurrentDocument(version)) return;
-                    showReview(TextAnonymizer.anonymize(lastText,
-                            additional.getText().toString()), version);
-                });
-        if (sourceDocument != null) options.setPositiveButton("Conservar diseño", (dialog, which) -> {
-            if (!isCurrentDocument(version)) return;
-            Intent visual = new Intent(this, VisualReviewActivity.class).setData(sourceDocument)
-                    .putExtra("additional", additional.getText().toString())
-                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            startActivity(visual);
-        });
-        options.show();
+        if (sourceDocument == null) { txtStatus.setText("No se puede abrir la revisión visual"); return; }
+        Intent visual = new Intent(this, VisualReviewActivity.class).setData(sourceDocument)
+                .putExtra("additional", editAdditional.getText().toString())
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        startActivity(visual);
     }
 
     private void showReview(String text, int version) {
@@ -357,47 +351,4 @@ protected void onCreate(Bundle savedInstanceState) {
         });
     }
 
-    private void showOutputFiles() {
-        setBusy(true);
-        txtStatus.setText("Buscando archivos anonimizados...");
-        documentExecutor.execute(() -> {
-            try {
-                List<OutputStore.Entry> files = OutputStore.list(getApplicationContext());
-                runOnUiThread(() -> {
-                    if (destroyed) return;
-                    setBusy(false);
-                    txtStatus.setText(Build.VERSION.SDK_INT >= 29
-                            ? "Carpeta de salida: Descargas/AnonDoc"
-                            : "Archivos guardados en las ubicaciones elegidas");
-                    String[] names = new String[files.size()];
-                    for (int i = 0; i < files.size(); i++) names[i] = files.get(i).name;
-                    AlertDialog.Builder list = new AlertDialog.Builder(this)
-                            .setTitle("Archivos anonimizados")
-                            .setNegativeButton("Cerrar", null);
-                    if (files.isEmpty()) list.setMessage("Todavía no hay archivos disponibles.");
-                    else list.setItems(names, (dialog, which) -> openOutput(files.get(which).uri));
-                    list.show();
-                });
-            } catch (Exception error) {
-                runOnUiThread(() -> {
-                    if (destroyed) return;
-                    setBusy(false);
-                    txtStatus.setText("No se pudieron listar los archivos: " + error.getMessage());
-                });
-            }
-        });
-    }
-
-    private void openOutput(Uri uri) {
-        Intent open = new Intent(Intent.ACTION_VIEW);
-        open.setDataAndType(uri, "application/pdf");
-        open.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        try {
-            startActivity(open);
-        } catch (ActivityNotFoundException missing) {
-            txtStatus.setText("Instala un visor de PDF para abrir el archivo");
-        } catch (SecurityException unavailable) {
-            txtStatus.setText("El archivo ya no está disponible o no se puede abrir");
-        }
-    }
 }

@@ -117,6 +117,31 @@
                 app:strokeColor="@color/anon_outline"
                 app:strokeWidth="1dp" />
 
+            <EditText
+                android:id="@+id/editAdditional"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:backgroundTint="@color/anon_primary"
+                android:hint="Datos concretos que deben ocultarse (opcional)"
+                android:inputType="textMultiLine"
+                android:maxLines="3"
+                android:minHeight="52dp"
+                android:padding="12dp"
+                android:textColor="@color/anon_text"
+                android:textColorHint="@color/anon_text_secondary"
+                android:textSize="14sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnTextOnly"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="4dp"
+                android:text="Más opciones · extraer solo texto"
+                android:textAllCaps="false"
+                android:textColor="@color/anon_primary_dark" />
+
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnViewFiles"
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"

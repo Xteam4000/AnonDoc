@@ -6,6 +6,7 @@
         android:allowBackup="false">
 
         <activity android:name=".VisualReviewActivity" android:exported="false"/>
+        <activity android:name=".OutputFilesActivity" android:exported="false"/>
 
         <activity
             android:name=".MainActivity"
