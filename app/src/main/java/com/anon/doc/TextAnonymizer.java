@@ -25,7 +25,8 @@ final class TextAnonymizer {
     private static final Set<String> NON_PERSON_LINES = new HashSet<>(Arrays.asList(
             "factura", "factura de electricidad", "aviso", "notificacion", "notificación",
             "informe", "tribunal supremo", "atencion al cliente", "atención al cliente",
-            "datos del cliente", "direccion de suministro", "dirección de suministro"));
+            "datos del cliente", "direccion de suministro", "dirección de suministro",
+            "total factura", "importe total", "resumen de factura"));
     private TextAnonymizer() {}
 
     static String anonymize(String source, String additionalValues) {
