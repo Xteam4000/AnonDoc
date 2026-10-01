@@ -163,6 +163,27 @@ public class MainFlowTest {
         return uri;
     }
 
+    private Uri multiPagePdfFixture() throws Exception {
+        File source = File.createTempFile("multipage_fixture_", ".pdf", context.getCacheDir());
+        try {
+            try (PDDocument pdf = new PDDocument()) {
+                for (int number = 1; number <= 2; number++) {
+                    PDPage page = new PDPage();
+                    pdf.addPage(page);
+                    try (PDPageContentStream out = new PDPageContentStream(pdf, page)) {
+                        out.beginText();
+                        out.setFont(PDType1Font.HELVETICA, 14);
+                        out.newLineAtOffset(40, 740);
+                        out.showText("PAGINA " + number + " - Nombre: JUAN PEREZ");
+                        out.endText();
+                    }
+                }
+                pdf.save(source);
+            }
+            return OutputStore.publishToDownloads(context, source);
+        } finally { source.delete(); }
+    }
+
     private void select(Uri uri) {
         // Only the external picker is stubbed: the app receives an actual stored file.
         intending(hasAction(Intent.ACTION_OPEN_DOCUMENT)).respondWith(
@@ -187,11 +208,10 @@ public class MainFlowTest {
     }
 
     private String review(String additional) {
-        onView(withId(R.id.btnAnon)).perform(click());
-        onView(isAssignableFrom(EditText.class)).perform(replaceText(additional), closeSoftKeyboard());
-        onView(withText("Solo texto editable")).perform(clickAfterLayout());
+        onView(withId(R.id.editAdditional)).perform(replaceText(additional), closeSoftKeyboard());
+        onView(withId(R.id.btnTextOnly)).perform(clickAfterLayout());
         AtomicReference<String> result = new AtomicReference<>();
-        onView(isAssignableFrom(EditText.class)).check((view, error) -> {
+        onView(allOf(isAssignableFrom(EditText.class), not(withId(R.id.editAdditional)))).check((view, error) -> {
             if (error != null) throw error;
             result.set(((EditText) view).getText().toString());
         });
@@ -262,9 +282,10 @@ public class MainFlowTest {
         String stored = savedText(output.uri);
         assertHidden(stored);
         assertTrue(stored.contains("REVISION CONFIRMADA"));
-        onView(withId(R.id.btnViewFiles)).perform(click());
-        waitForWorker();
-        onView(withText(output.name)).perform(click());
+        onView(withId(R.id.btnViewFiles)).perform(scrollTo(), click());
+        waitForVisualText(output.name);
+        onView(withText(output.name)).check(matches(isDisplayed()));
+        onView(withContentDescription("Abrir " + output.name)).perform(click());
         intended(allOf(hasAction(Intent.ACTION_VIEW), hasType("application/pdf"), hasData(output.uri)));
         boolean grant = false;
         for (Intent intent : Intents.getIntents()) {
@@ -316,17 +337,19 @@ public class MainFlowTest {
         OutputStore.Entry output = exportReviewed(outputUris(), null);
         scenario.recreate();
         onView(withId(R.id.btnAnon)).check(matches(not(isEnabled())));
-        onView(withId(R.id.btnViewFiles)).perform(click());
-        waitForWorker();
+        onView(withId(R.id.btnViewFiles)).perform(scrollTo(), click());
+        waitForVisualText(output.name);
         onView(withText(output.name)).check(matches(isDisplayed()));
-        onView(withText("Cerrar")).perform(click());
+        androidx.test.espresso.Espresso.pressBack();
     }
 
     private void waitForVisualText(String prefix) {
         long end=SystemClock.uptimeMillis()+60000;
         while(SystemClock.uptimeMillis()<end) {
             try {
-                onView(withText(startsWith(prefix))).check(matches(isDisplayed()));
+                Matcher<View> expected = prefix.startsWith("Página ")
+                        ? withText(prefix) : withText(startsWith(prefix));
+                onView(allOf(expected, isDisplayed())).check(matches(isDisplayed()));
                 return;
             } catch(androidx.test.espresso.NoMatchingViewException | AssertionError notReady) {
                 SystemClock.sleep(100);
@@ -338,9 +361,8 @@ public class MainFlowTest {
     @Test public void originalLayoutFlowsThroughVisualReviewSaveAndList() throws Exception {
         select(pdfFixture(false,false));
         Set<Uri> before=outputUris();
+        onView(withId(R.id.editAdditional)).perform(replaceText("REFERENCIA RESERVADA"),closeSoftKeyboard());
         onView(withId(R.id.btnAnon)).perform(click());
-        onView(isAssignableFrom(EditText.class)).perform(replaceText("REFERENCIA RESERVADA"),closeSoftKeyboard());
-        onView(withText("Conservar diseño")).perform(clickAfterLayout());
         waitForVisualText("Página 1 de 1");
         onView(withText("Lo hago yo")).perform(click());
         onView(withText("Tachar")).perform(click());
@@ -350,11 +372,10 @@ public class MainFlowTest {
                 v->{int[] loc=new int[2]; v.getLocationOnScreen(loc); return new float[]{loc[0]+v.getWidth()*0.45f,loc[1]+v.getHeight()*0.55f};},
                 v->{int[] loc=new int[2]; v.getLocationOnScreen(loc); return new float[]{loc[0]+v.getWidth()*0.60f,loc[1]+v.getHeight()*0.70f};},
                 androidx.test.espresso.action.Press.FINGER));
-        onView(withText("Borrar")).perform(click());
-        onView(withText("Guardar cambios")).perform(click());
+        onView(withText("Borrar último")).perform(click());
         onView(withText("Completar anonimización")).perform(click());
         waitForVisualText("Documento definitivo preparado");
-        onView(withText("Guardar")).perform(click());
+        onView(withText("Guardar en AnonDoc")).perform(click());
         waitForVisualText("Guardado en Descargas/AnonDoc");
         OutputStore.Entry output=null;
         for(OutputStore.Entry f:OutputStore.list(context)) if(!before.contains(f.uri)) {
@@ -367,21 +388,38 @@ public class MainFlowTest {
         assertFalse(visible.contains("REFERENCIA RESERVADA"));
         assertTrue(visible.contains("INFORME"));
         androidx.test.espresso.Espresso.pressBack();
-        onView(withId(R.id.btnViewFiles)).perform(click());
-        waitForWorker();
+        onView(withId(R.id.btnViewFiles)).perform(scrollTo(), click());
+        waitForVisualText(output.name);
         onView(withText(output.name)).check(matches(isDisplayed()));
-        onView(withText("Cerrar")).perform(click());
+        androidx.test.espresso.Espresso.pressBack();
     }
 
     @Test public void cancellingVisualReviewDoesNotPublishAnything() throws Exception {
         select(pdfFixture(false,false));
         Set<Uri> before=outputUris();
         onView(withId(R.id.btnAnon)).perform(click());
-        onView(withText("Conservar diseño")).perform(clickAfterLayout());
         waitForVisualText("Página 1 de 1");
         androidx.test.espresso.Espresso.pressBack();
         assertEquals(before,outputUris());
         onView(withId(R.id.btnAnon)).check(matches(isEnabled()));
+    }
+
+    @Test public void everyVisualStageNavigatesAllPages() throws Exception {
+        select(multiPagePdfFixture());
+        onView(withId(R.id.btnAnon)).perform(click());
+        waitForVisualText("Página 1 de 2");
+        onView(withText("›")).perform(click());
+        onView(withText("Página 2 de 2")).check(matches(isDisplayed()));
+        onView(withText("Lo hago yo")).perform(click());
+        onView(withText("Página 2 de 2")).check(matches(isDisplayed()));
+        onView(withText("‹")).perform(click());
+        onView(withText("Página 1 de 2")).check(matches(isDisplayed()));
+        onView(withText("Completar anonimización")).perform(click());
+        waitForVisualText("Documento definitivo preparado");
+        onView(withText("Página 1 de 2")).check(matches(isDisplayed()));
+        onView(withText("›")).perform(click());
+        onView(withText("Página 2 de 2")).check(matches(isDisplayed()));
+        onView(withText("Descartar")).perform(click());
     }
 
     @Test public void pdfWithoutRecognizedTextStillAllowsVisualReview() throws Exception {
@@ -392,12 +430,12 @@ public class MainFlowTest {
             uri=OutputStore.publishToDownloads(context,source);
         } finally { source.delete(); }
         select(uri);
-        onView(withId(R.id.txtStatus)).check(matches(withText(containsString("Conservar diseño"))));
+        onView(withId(R.id.txtStatus)).check(matches(withText(containsString("revisa visualmente"))));
         onView(withId(R.id.btnAnon)).check(matches(isEnabled()));
         onView(withId(R.id.btnAnon)).perform(click());
-        onView(withText("Conservar diseño")).perform(clickAfterLayout());
         waitForVisualText("Página 1 de 1");
-        onView(withText(startsWith("Página 1 de 1"))).check(matches(withText(containsString("Sin texto OCR"))));
+        onView(allOf(withText(startsWith("Página 1 de 1")),
+                withText(containsString("Sin texto OCR")))).check(matches(isDisplayed()));
         onView(withText("Me vale")).check(matches(isEnabled()));
         androidx.test.espresso.Espresso.pressBack();
     }

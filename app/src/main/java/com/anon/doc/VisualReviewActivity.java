@@ -54,20 +54,22 @@ public class VisualReviewActivity extends Activity {
 
     private void showAutomatic(){
         screen=Screen.AUTOMATIC;marking=false;preview.setMarking(false);title.setText("Resultado automático");
-        help.setText("Amplía con dos dedos y revisa las zonas negras. Nada se guarda hasta que lo confirmes.");index=0;showPage(0);controls.removeAllViews();
+        help.setText("Revisa todas las páginas. Pellizca para ampliar y arrastra para desplazarte.");showPage(index);controls.removeAllViews();
+        controls.addView(pageNavigation());
         LinearLayout row=row();row.addView(button("Me vale",true,this::complete),weight());row.addView(button("Lo hago yo",false,this::showManual),weight());controls.addView(row);
     }
     private void showManual(){
-        screen=Screen.MANUAL;marking=false;preview.setMarking(false);title.setText("Censura manual");
+        screen=Screen.MANUAL;preview.setMarking(marking);title.setText("Censura manual");
         help.setText("Amplía normalmente. Pulsa Tachar solo cuando quieras dibujar una zona negra.");controls.removeAllViews();
-        LinearLayout tools=row();tools.addView(button("‹",false,()->showPage(index-1)),weight());tools.addView(button("›",false,()->showPage(index+1)),weight());
-        tools.addView(button("Tachar",false,()->{marking=!marking;preview.setMarking(marking);updateStatus();}),weight());tools.addView(button("Borrar",false,this::undo),weight());controls.addView(tools);
-        LinearLayout saveRow=row();saveRow.addView(button("Guardar cambios",false,()->{marking=false;preview.setMarking(false);status.setText("Cambios manuales guardados en esta revisión");}),weight());controls.addView(saveRow);
+        controls.addView(pageNavigation());LinearLayout tools=row();
+        tools.addView(button("Tachar",marking,()->{marking=!marking;preview.setMarking(marking);showManual();}),weight());tools.addView(button("Borrar último",false,this::undo),weight());controls.addView(tools);
         controls.addView(button("Completar anonimización",true,this::complete),new LinearLayout.LayoutParams(-1,dp(54)));updateStatus();
     }
     private void showFinal(){
         screen=Screen.FINAL;marking=false;preview.setMarking(false);title.setText("Documento definitivo");help.setText("Esta es la versión final. Puedes guardarla, consultar los archivos o descartarla.");
-        index=0;showPage(0);controls.removeAllViews();LinearLayout row=row();row.addView(button("Guardar",true,this::saveFinal),weight());row.addView(button("Ver archivos",false,this::showFiles),weight());row.addView(button("Borrar",false,this::discard),weight());controls.addView(row);
+        showPage(index);controls.removeAllViews();controls.addView(pageNavigation());
+        controls.addView(button("Guardar en AnonDoc",true,this::saveFinal),new LinearLayout.LayoutParams(-1,dp(54)));
+        LinearLayout row=row();row.setPadding(0,dp(7),0,0);row.addView(button("Mis archivos",false,this::showFiles),weight());row.addView(button("Descartar",false,this::discard),weight());controls.addView(row);
         status.setText("Documento definitivo preparado · todavía no guardado");
     }
 
@@ -84,13 +86,7 @@ public class VisualReviewActivity extends Activity {
             try{startActivityForResult(i,2);}catch(ActivityNotFoundException e){pending=null;busy=false;status.setText("No hay selector de guardado disponible");}}
     }
 
-    private void showFiles(){worker.execute(()->{try{List<OutputStore.Entry> files=OutputStore.list(getApplicationContext());runOnUiThread(()->{if(!destroyed)fileDialog(files);});}catch(Exception e){runOnUiThread(()->{if(!destroyed)status.setText("No se pudieron listar: "+e.getMessage());});}});}
-    private void fileDialog(List<OutputStore.Entry> files){String[] names=new String[files.size()];for(int i=0;i<files.size();i++)names[i]=files.get(i).name;AlertDialog.Builder d=new AlertDialog.Builder(this).setTitle("Archivos anonimizados").setNegativeButton("Cerrar",null);
-        if(files.isEmpty())d.setMessage("Todavía no hay archivos guardados.");else d.setItems(names,(x,which)->fileActions(files.get(which))).setNeutralButton("Borrar todos",(x,w)->confirmDeleteAll());d.show();}
-    private void fileActions(OutputStore.Entry e){new AlertDialog.Builder(this).setTitle(e.name).setPositiveButton("Abrir",(d,w)->open(e.uri)).setNegativeButton("Cerrar",null).setNeutralButton("Borrar",(d,w)->delete(e)).show();}
-    private void delete(OutputStore.Entry e){worker.execute(()->{boolean ok=OutputStore.delete(getApplicationContext(),e.uri);runOnUiThread(()->{if(!destroyed)status.setText(ok?"Archivo borrado":"No se pudo borrar el archivo");});});}
-    private void confirmDeleteAll(){new AlertDialog.Builder(this).setTitle("Borrar todos los archivos").setMessage("Esta acción eliminará todos los PDF de AnonDoc disponibles.").setNegativeButton("Cancelar",null).setPositiveButton("Borrar todos",(d,w)->worker.execute(()->{int n=OutputStore.deleteAll(getApplicationContext());runOnUiThread(()->{if(!destroyed)status.setText("Archivos borrados: "+n);});})).show();}
-    private void open(Uri uri){Intent i=new Intent(Intent.ACTION_VIEW).setDataAndType(uri,"application/pdf").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);try{startActivity(i);}catch(ActivityNotFoundException e){status.setText("Instala un visor de PDF para abrirlo");}}
+    private void showFiles(){startActivity(new Intent(this,OutputFilesActivity.class));}
     private void discard(){if(finalPdf!=null){finalPdf.delete();finalPdf=null;}finish();}
     private void undo(){if(session==null)return;VisualPdf.Page p=session.pages.get(index);if(p.masks.size()>p.automatic){p.masks.remove(p.masks.size()-1);preview.invalidate();}updateStatus();}
     private void showPage(int requested){if(session==null||requested<0||requested>=session.pages.size())return;index=requested;try{preview.setPage(session.pages.get(index));updateStatus();}catch(Exception e){busy=true;status.setText("No se puede mostrar la página: "+e.getMessage());}}
@@ -103,17 +99,24 @@ public class VisualReviewActivity extends Activity {
     @Override protected void onDestroy(){destroyed=true;preview.release();if(finalPdf!=null)finalPdf.delete();worker.execute(()->{if(session!=null)session.close();});worker.shutdown();super.onDestroy();}
 
     private LinearLayout row(){LinearLayout r=new LinearLayout(this);r.setOrientation(LinearLayout.HORIZONTAL);r.setPadding(0,0,0,dp(7));return r;}
+    private LinearLayout pageNavigation(){LinearLayout r=row();r.addView(button("‹",false,()->navigate(index-1)),weight());TextView page=new TextView(this);page.setGravity(Gravity.CENTER);page.setText("Página "+(index+1)+" de "+session.pages.size());page.setTextColor(primaryDark);r.addView(page,new LinearLayout.LayoutParams(0,dp(48),2));r.addView(button("›",false,()->navigate(index+1)),weight());return r;}
+    private void navigate(int page){if(page<0||session==null||page>=session.pages.size())return;index=page;if(screen==Screen.AUTOMATIC)showAutomatic();else if(screen==Screen.MANUAL){marking=false;showManual();}else showFinal();}
     private LinearLayout.LayoutParams weight(){LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,dp(48),1);p.setMargins(dp(3),0,dp(3),0);return p;}
     private MaterialButton button(String text,boolean strong,Runnable action){MaterialButton b=new MaterialButton(this);b.setText(text);b.setAllCaps(false);b.setTextSize(14);b.setCornerRadius(dp(15));b.setBackgroundTintList(ColorStateList.valueOf(strong?primary:surface));b.setTextColor(strong?Color.WHITE:primaryDark);b.setStrokeColor(ColorStateList.valueOf(primary));b.setStrokeWidth(strong?0:dp(1));b.setOnClickListener(v->action.run());return b;}
     private int dp(int value){return Math.round(value*getResources().getDisplayMetrics().density);}
 
     final class PageView extends View{
-        Bitmap bitmap;VisualPdf.Page page;boolean markingEnabled;float zoom=1,panX,panY,startX,startY,lastX,lastY;boolean drawing,multiple;RectF draft;final Matrix transform=new Matrix(),inverse=new Matrix();final ScaleGestureDetector scaling;
+        Bitmap bitmap;VisualPdf.Page page;boolean markingEnabled;float zoom=1,panX,panY,startX,startY,lastX,lastY;boolean drawing,multiple,suppressUntilUp;RectF draft;final Matrix transform=new Matrix(),inverse=new Matrix();final ScaleGestureDetector scaling;
         PageView(Context c){super(c);setBackgroundColor(Color.rgb(224,230,232));scaling=new ScaleGestureDetector(c,new ScaleGestureDetector.SimpleOnScaleGestureListener(){@Override public boolean onScale(ScaleGestureDetector d){zoom=Math.max(1,Math.min(6,zoom*d.getScaleFactor()));invalidate();return true;}});}
         void setMarking(boolean enabled){markingEnabled=enabled;drawing=false;draft=null;invalidate();}void release(){if(bitmap!=null){bitmap.recycle();bitmap=null;}}void setPage(VisualPdf.Page p)throws Exception{release();page=p;bitmap=p.bitmap();zoom=1;panX=panY=0;draft=null;drawing=false;invalidate();}
         void matrix(){if(bitmap==null)return;float fit=Math.min((float)getWidth()/bitmap.getWidth(),(float)getHeight()/bitmap.getHeight()),scale=fit*zoom;float maxX=Math.max(0,(bitmap.getWidth()*scale-getWidth())/2),maxY=Math.max(0,(bitmap.getHeight()*scale-getHeight())/2);panX=Math.max(-maxX,Math.min(maxX,panX));panY=Math.max(-maxY,Math.min(maxY,panY));transform.reset();transform.postScale(scale,scale);transform.postTranslate((getWidth()-bitmap.getWidth()*scale)/2+panX,(getHeight()-bitmap.getHeight()*scale)/2+panY);transform.invert(inverse);}
         @Override protected void onDraw(Canvas c){super.onDraw(c);if(bitmap==null)return;matrix();c.save();c.concat(transform);c.drawBitmap(bitmap,0,0,null);VisualPdf.paintMasks(c,page.masks);if(draft!=null)VisualPdf.paintMasks(c,Collections.singletonList(draft));c.restore();}
-        @Override public boolean onTouchEvent(MotionEvent e){if(bitmap==null)return false;scaling.onTouchEvent(e);matrix();if(e.getPointerCount()>1){drawing=false;draft=null;float x=(e.getX(0)+e.getX(1))/2,y=(e.getY(0)+e.getY(1))/2;if(multiple&&e.getActionMasked()==MotionEvent.ACTION_MOVE){panX+=x-lastX;panY+=y-lastY;}lastX=x;lastY=y;multiple=true;invalidate();return true;}if(!markingEnabled){drawing=false;draft=null;multiple=false;return true;}float[] pt={e.getX(),e.getY()};inverse.mapPoints(pt);float x=Math.max(0,Math.min(bitmap.getWidth(),pt[0])),y=Math.max(0,Math.min(bitmap.getHeight(),pt[1]));switch(e.getActionMasked()){case MotionEvent.ACTION_DOWN:multiple=false;drawing=pt[0]>=0&&pt[0]<=bitmap.getWidth()&&pt[1]>=0&&pt[1]<=bitmap.getHeight();startX=x;startY=y;break;case MotionEvent.ACTION_MOVE:if(drawing&&!multiple)draft=new RectF(Math.min(startX,x),Math.min(startY,y),Math.max(startX,x),Math.max(startY,y));break;case MotionEvent.ACTION_UP:if(drawing&&!multiple&&draft!=null&&draft.width()>=3&&draft.height()>=3){page.masks.add(new RectF(draft));updateStatus();}drawing=false;multiple=false;draft=null;performClick();break;case MotionEvent.ACTION_CANCEL:drawing=false;multiple=false;draft=null;break;}invalidate();return true;}
+        @Override public boolean onTouchEvent(MotionEvent e){
+            if(bitmap==null)return false;scaling.onTouchEvent(e);matrix();
+            if(e.getPointerCount()>1){drawing=false;draft=null;suppressUntilUp=true;float x=(e.getX(0)+e.getX(1))/2,y=(e.getY(0)+e.getY(1))/2;if(multiple&&e.getActionMasked()==MotionEvent.ACTION_MOVE){panX+=x-lastX;panY+=y-lastY;}lastX=x;lastY=y;multiple=true;invalidate();return true;}
+            if(suppressUntilUp){if(e.getActionMasked()==MotionEvent.ACTION_UP||e.getActionMasked()==MotionEvent.ACTION_CANCEL){suppressUntilUp=false;multiple=false;}return true;}
+            if(!markingEnabled){switch(e.getActionMasked()){case MotionEvent.ACTION_DOWN:lastX=e.getX();lastY=e.getY();break;case MotionEvent.ACTION_MOVE:if(zoom>1){panX+=e.getX()-lastX;panY+=e.getY()-lastY;lastX=e.getX();lastY=e.getY();invalidate();}break;case MotionEvent.ACTION_UP:performClick();break;}return true;}
+            float[] pt={e.getX(),e.getY()};inverse.mapPoints(pt);float x=Math.max(0,Math.min(bitmap.getWidth(),pt[0])),y=Math.max(0,Math.min(bitmap.getHeight(),pt[1]));switch(e.getActionMasked()){case MotionEvent.ACTION_DOWN:multiple=false;drawing=pt[0]>=0&&pt[0]<=bitmap.getWidth()&&pt[1]>=0&&pt[1]<=bitmap.getHeight();startX=x;startY=y;break;case MotionEvent.ACTION_MOVE:if(drawing&&!multiple)draft=new RectF(Math.min(startX,x),Math.min(startY,y),Math.max(startX,x),Math.max(startY,y));break;case MotionEvent.ACTION_UP:if(drawing&&!multiple&&draft!=null&&draft.width()>=3&&draft.height()>=3){page.masks.add(new RectF(draft));updateStatus();}drawing=false;multiple=false;draft=null;performClick();break;case MotionEvent.ACTION_CANCEL:drawing=false;multiple=false;draft=null;break;}invalidate();return true;}
         @Override public boolean performClick(){return super.performClick();}
     }
 }

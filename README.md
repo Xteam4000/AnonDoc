@@ -6,11 +6,11 @@ Prototipo Android para extraer texto de imágenes y PDF, ocultar datos personale
 
 1. Seleccionar un PDF o imagen.
 2. Esperar a la extracción y al OCR.
-3. Pulsar Anonimizar; opcionalmente indicar datos adicionales (un nombre, dirección o valor por línea).
-4. Elegir Solo texto editable para reconstruir únicamente el texto, o Conservar diseño para obtener un PDF con el aspecto del PDF o imagen original.
-   En Conservar diseño, revisar todas las páginas, marcar con un dedo zonas adicionales (firmas, fotos, códigos), ampliar/desplazar con dos dedos y confirmar cada página. Deshacer elimina la última zona manual; las propuestas automáticas se mantienen.
-5. Exportar expresamente el texto revisado o Guardar PDF con diseño tras confirmar todas las páginas. En Android 10 o posterior se guarda en Descargas/AnonDoc; en Android anteriores se elige destino con Guardar como.
-6. Pulsar Ver archivos anonimizados y tocar un PDF para abrirlo con el visor instalado.
+3. Opcionalmente indicar datos concretos que deban ocultarse y pulsar Anonimizar.
+4. Revisar el resultado automático página a página. El usuario puede aceptarlo con Me vale o entrar en Lo hago yo.
+5. En Censura manual, navegar por todas las páginas, ampliar o desplazar con los gestos habituales y activar Tachar únicamente para dibujar rectángulos negros. Borrar último deshace las marcas manuales una a una.
+6. Completar la anonimización, revisar también todas las páginas del documento definitivo y guardarlo. En Android 10 o posterior se guarda en Descargas/AnonDoc; en Android anteriores se elige destino con Guardar como.
+7. Mis archivos abre una pantalla completa desde la que se puede abrir o eliminar cada PDF. “Más opciones · extraer solo texto” conserva el flujo secundario de reconstrucción textual.
 
 ## Lectura y límites
 
@@ -43,7 +43,7 @@ GitHub Actions ejecuta compilación, pruebas unitarias y pruebas instrumentadas 
 
 ## PDF con el diseño original
 
-El modo Conservar diseño está disponible al cargar un PDF correctamente. Renderiza cada página con PdfRenderer, propone ocultaciones con posiciones OCR y las mismas reglas/valores manuales y permite dibujar rectángulos adicionales. No hay exportación hasta confirmar todas las páginas; añadir o deshacer una zona invalida su confirmación. Requiere comprobación visual completa, incluidos firmas, fotografías, QR/códigos de barras y datos que el OCR no detecte. Una propuesta puede ocultar una línea completa o un bloque para proteger campos repartidos; no se garantiza precisión ni anonimización automática completa.
+El flujo visual se abre directamente al anonimizar. Renderiza cada página con PdfRenderer, propone ocultaciones con posiciones OCR y las mismas reglas/valores manuales y permite dibujar rectángulos adicionales. El resultado automático, la edición manual y el resultado definitivo permiten recorrer todas las páginas. Requiere comprobación visual completa, incluidos firmas, fotografías, QR/códigos de barras y datos que el OCR no detecte. Una propuesta puede ocultar una línea completa o un bloque para proteger campos repartidos; no se garantiza precisión ni anonimización automática completa.
 
 La salida se construye desde imágenes con las zonas ya pintadas de negro de forma opaca. No se insertan imágenes originales debajo de overlays ni se copian texto oculto, metadatos originales, adjuntos, formularios, anotaciones o firmas digitales. Se mantiene el aspecto de las áreas no censuradas, las imágenes, el tamaño visible, la orientación y el orden de páginas. No es una copia idéntica de los objetos PDF: el texto queda rasterizado, no seleccionable; los enlaces y formularios pierden interactividad y las firmas digitales no conservan validez. Se usa PNG/compresión sin pérdida después de renderizar (hasta 3 píxeles por punto, lado mayor máximo 2000 píxeles). Puede haber pérdida de nitidez al ampliar y aumento de tamaño. Límite adicional de 24 millones de píxeles totales; el exceso falla completo, sin publicar páginas parciales.
 
