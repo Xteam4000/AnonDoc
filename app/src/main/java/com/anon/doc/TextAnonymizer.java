@@ -77,7 +77,7 @@ final class TextAnonymizer {
     /** Detects unlabelled recipient blocks without treating ordinary prose as a person's name. */
     private static String hidePostalBlocks(String text) {
         String[] lines = text.split("\\r?\\n", -1);
-        boolean[] hide = sensitiveLines(Arrays.asList(lines), "");
+        boolean[] hide = postalBlockLines(Arrays.asList(lines));
         StringBuilder out = new StringBuilder();
         for (int i = 0; i < lines.length; i++) {
             if (i > 0) out.append('\n');
@@ -87,12 +87,21 @@ final class TextAnonymizer {
     }
 
     static boolean[] sensitiveLines(List<String> lines, String additionalValues) {
+        boolean[] sensitive = postalBlockLines(lines);
+        for (int i = 0; i < lines.size(); i++) {
+            String line = lines.get(i) == null ? "" : lines.get(i).trim();
+            sensitive[i] |= !line.equals(anonymizeSingleLine(line, additionalValues));
+        }
+        return sensitive;
+    }
+
+    private static boolean[] postalBlockLines(List<String> lines) {
         boolean[] sensitive = new boolean[lines.size()];
         boolean[] postalOrAddress = new boolean[lines.size()];
         for (int i = 0; i < lines.size(); i++) {
             String line = lines.get(i) == null ? "" : lines.get(i).trim();
-            postalOrAddress[i] = POSTAL_LOCALITY.matcher(line).matches() || ADDRESS.matcher(line).matches();
-            sensitive[i] = postalOrAddress[i] || !line.equals(anonymizeSingleLine(line, additionalValues));
+            postalOrAddress[i] = isPostalLocality(line) || ADDRESS.matcher(line).matches();
+            sensitive[i] = postalOrAddress[i];
         }
         for (int i = 0; i < lines.size(); i++) {
             String line = lines.get(i) == null ? "" : lines.get(i).trim();
@@ -106,6 +115,12 @@ final class TextAnonymizer {
                     || (i + 2 < lines.size() && postalOrAddress[i + 2]))) sensitive[i] = true;
         }
         return sensitive;
+    }
+
+    private static boolean isPostalLocality(String line) {
+        if(!POSTAL_LOCALITY.matcher(line).matches()) return false;
+        return !line.matches("(?iu).*\\b(?:euros?|eur|c[eé]ntimos?|kwh|kw|vatios?|wh)\\b.*")
+                && !line.contains("€");
     }
 
     private static String anonymizeSingleLine(String line, String additionalValues) {
