@@ -285,7 +285,8 @@ public class MainFlowTest {
         onView(withId(R.id.btnViewFiles)).perform(scrollTo(), click());
         waitForVisualText(output.name);
         onView(withText(output.name)).check(matches(isDisplayed()));
-        onView(withText("Abrir")).perform(click());
+        onView(allOf(withText("Abrir"), isDescendantOfA(hasDescendant(withText(output.name)))))
+                .perform(click());
         intended(allOf(hasAction(Intent.ACTION_VIEW), hasType("application/pdf"), hasData(output.uri)));
         boolean grant = false;
         for (Intent intent : Intents.getIntents()) {
@@ -434,7 +435,8 @@ public class MainFlowTest {
         onView(withId(R.id.btnAnon)).check(matches(isEnabled()));
         onView(withId(R.id.btnAnon)).perform(click());
         waitForVisualText("Página 1 de 1");
-        onView(withText(startsWith("Página 1 de 1"))).check(matches(withText(containsString("Sin texto OCR"))));
+        onView(allOf(withText(startsWith("Página 1 de 1")),
+                withText(containsString("Sin texto OCR")))).check(matches(isDisplayed()));
         onView(withText("Me vale")).check(matches(isEnabled()));
         androidx.test.espresso.Espresso.pressBack();
     }
