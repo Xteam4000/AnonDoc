@@ -7,7 +7,7 @@ Prototipo Android para extraer texto de imágenes y PDF, ocultar datos personale
 1. Seleccionar un PDF o imagen.
 2. Esperar a la extracción y al OCR.
 3. Pulsar Anonimizar; opcionalmente indicar datos adicionales (un nombre, dirección o valor por línea).
-4. Elegir Revisar resultado para texto editable, o Conservar diseño para un PDF con su aspecto original.
+4. Elegir Solo texto editable para reconstruir únicamente el texto, o Conservar diseño para obtener un PDF con el aspecto del PDF o imagen original.
    En Conservar diseño, revisar todas las páginas, marcar con un dedo zonas adicionales (firmas, fotos, códigos), ampliar/desplazar con dos dedos y confirmar cada página. Deshacer elimina la última zona manual; las propuestas automáticas se mantienen.
 5. Exportar expresamente el texto revisado o Guardar PDF con diseño tras confirmar todas las páginas. En Android 10 o posterior se guarda en Descargas/AnonDoc; en Android anteriores se elige destino con Guardar como.
 6. Pulsar Ver archivos anonimizados y tocar un PDF para abrirlo con el visor instalado.
