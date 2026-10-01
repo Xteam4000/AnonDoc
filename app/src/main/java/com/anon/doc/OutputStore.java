@@ -122,4 +122,18 @@ final class OutputStore {
             throw new IOException("No se pudo registrar el archivo guardado", error);
         }
     }
+
+    static boolean delete(Context context, Uri uri) {
+        try { return context.getContentResolver().delete(uri, null, null) > 0; }
+        catch (RuntimeException unavailable) { return false; }
+    }
+
+    static int deleteAll(Context context) {
+        int deleted = 0;
+        try {
+            for (Entry entry : list(context)) if (delete(context, entry.uri)) deleted++;
+        } catch (IOException ignored) { }
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove("saved").apply();
+        return deleted;
+    }
 }

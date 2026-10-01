@@ -342,20 +342,18 @@ public class MainFlowTest {
         onView(isAssignableFrom(EditText.class)).perform(replaceText("REFERENCIA RESERVADA"),closeSoftKeyboard());
         onView(withText("Conservar diseño")).perform(clickAfterLayout());
         waitForVisualText("Página 1 de 1");
-        onView(withText("Guardar PDF con diseño")).check(matches(not(isEnabled())));
-        onView(withText("Confirmar página revisada")).perform(click());
-        onView(withText("Guardar PDF con diseño")).check(matches(isEnabled()));
-        onView(withContentDescription("Página original con zonas ocultas")).perform(
+        onView(withText("Lo hago yo")).perform(click());
+        onView(withText("Tachar")).perform(click());
+        onView(withContentDescription("Documento anonimizado ampliable")).perform(
             new androidx.test.espresso.action.GeneralSwipeAction(
                 androidx.test.espresso.action.Swipe.SLOW,
                 v->{int[] loc=new int[2]; v.getLocationOnScreen(loc); return new float[]{loc[0]+v.getWidth()*0.45f,loc[1]+v.getHeight()*0.55f};},
                 v->{int[] loc=new int[2]; v.getLocationOnScreen(loc); return new float[]{loc[0]+v.getWidth()*0.60f,loc[1]+v.getHeight()*0.70f};},
                 androidx.test.espresso.action.Press.FINGER));
-        onView(withText("Guardar PDF con diseño")).check(matches(not(isEnabled())));
-        onView(withText("Deshacer")).perform(click());
-        onView(withText("Guardar PDF con diseño")).check(matches(not(isEnabled())));
-        onView(withText("Confirmar página revisada")).perform(click());
-        onView(withText("Guardar PDF con diseño")).perform(click());
+        onView(withText("Borrar")).perform(click());
+        onView(withText("Guardar cambios")).perform(click());
+        onView(withText("Completar anonimización")).perform(click());
+        waitForVisualText("Documento definitivo preparado");
         onView(withText("Guardar")).perform(click());
         waitForVisualText("Guardado en Descargas/AnonDoc");
         OutputStore.Entry output=null;
@@ -400,7 +398,7 @@ public class MainFlowTest {
         onView(withText("Conservar diseño")).perform(clickAfterLayout());
         waitForVisualText("Página 1 de 1");
         onView(withText(startsWith("Página 1 de 1"))).check(matches(withText(containsString("Sin texto OCR"))));
-        onView(withText("Guardar PDF con diseño")).check(matches(not(isEnabled())));
+        onView(withText("Me vale")).check(matches(isEnabled()));
         androidx.test.espresso.Espresso.pressBack();
     }
 }
