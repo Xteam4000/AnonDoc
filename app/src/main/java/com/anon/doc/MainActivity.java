@@ -8,15 +8,11 @@ import android.view.View;
 import android.widget.TextView;
 
 import com.google.android.material.button.MaterialButton;
-import com.google.mlkit.vision.common.InputImage;
-import com.google.mlkit.vision.text.TextRecognition;
-import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
-import com.google.mlkit.vision.text.TextRecognizer;
+import com.tom_roush.pdfbox.android.PDFBoxResourceLoader;
 
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import com.tom_roush.pdfbox.android.PDFBoxResourceLoader;
 
 public class MainActivity extends Activity {
 
@@ -28,18 +24,15 @@ public class MainActivity extends Activity {
     private View cardViewFiles;
     private static final int PICK_FILE = 1;
 
-    private String lastText = "";
     private Uri sourceDocument;
-    private String documentWarning = "";
     private final ExecutorService documentExecutor = Executors.newSingleThreadExecutor();
     private int documentVersion = 0;
     private boolean destroyed = false;
-    private TextRecognizer activeRecognizer;
 
     private void setBusy(boolean busy) {
         cardSelect.setEnabled(!busy);
         if (cardSelectImage != null) cardSelectImage.setEnabled(!busy);
-        btnAnon.setEnabled(!busy && (!lastText.isEmpty() || sourceDocument != null));
+        btnAnon.setEnabled(!busy && sourceDocument != null);
         if (cardViewFiles != null) cardViewFiles.setEnabled(!busy);
         if (txtStatusTitle != null) txtStatusTitle.setText(busy ? "Procesando" : "Preparado");
     }
@@ -101,9 +94,7 @@ public class MainActivity extends Activity {
         if (requestCode == PICK_FILE && resultCode == RESULT_OK && data != null) {
             Uri uri = data.getData();
             final int version = ++documentVersion;
-            lastText = "";
             sourceDocument = null;
-            documentWarning = "";
             setBusy(false);
             if (uri == null) {
                 txtStatus.setText("No se ha recibido ningún documento");
@@ -128,33 +119,22 @@ public class MainActivity extends Activity {
 
     private void handlePdf(Uri uri, int version) {
         setBusy(true);
-        txtStatus.setText("Leyendo PDF y reconociendo sus imágenes...");
+        txtStatus.setText("Comprobando PDF...");
         documentExecutor.execute(() -> {
             try {
-                PdfOcrReader.Result result = PdfOcrReader.read(getApplicationContext(), uri,
-                        (page, total) -> runOnUiThread(() -> {
-                            if (isCurrentDocument(version)) {
-                                txtStatus.setText("OCR de PDF: página " + page + " de " + total);
-                            }
-                        }));
+                DocumentValidator.validatePdf(getApplicationContext(), uri);
                 runOnUiThread(() -> {
                     if (!isCurrentDocument(version)) return;
-                    lastText = result.text.trim();
                     sourceDocument = uri;
-                    documentWarning = result.emptyPages > 0
-                            ? result.emptyPages + " página(s) sin texto reconocido. Comprueba el original. "
-                            : "";
                     setBusy(false);
-                    txtStatus.setText(lastText.isEmpty()
-                            ? "No se ha reconocido texto. Pulsa Anonimizar y revisa visualmente todas las páginas."
-                            : documentWarning + "Lectura y OCR completados. Pulsa Anonimizar y revisa el resultado.");
+                    txtStatus.setText("PDF preparado. Pulsa Anonimizar y revisa visualmente todas las páginas.");
                 });
             } catch (Exception e) {
                 runOnUiThread(() -> {
                     if (!isCurrentDocument(version)) return;
-                    lastText = "";
+                    sourceDocument = null;
                     setBusy(false);
-                    txtStatus.setText("No se pudo procesar todo el PDF: " + e.getMessage());
+                    txtStatus.setText("No se pudo procesar el PDF: " + e.getMessage());
                 });
             }
         });
@@ -162,41 +142,25 @@ public class MainActivity extends Activity {
 
     private void handleImage(Uri uri, int version) {
         setBusy(true);
-        txtStatus.setText("Reconociendo texto de la imagen...");
-        try {
-            InputImage image = InputImage.fromFilePath(this, uri);
-            final TextRecognizer recognizer =
-                    TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
-            activeRecognizer = recognizer;
-            recognizer.process(image)
-                    .addOnSuccessListener(result -> {
-                        if (!isCurrentDocument(version)) return;
-                        lastText = result.getText().trim();
-                        sourceDocument = uri;
-                        setBusy(false);
-                        txtStatus.setText(lastText.isEmpty()
-                                ? "No se ha reconocido texto en la imagen"
-                                : "OCR completado. Pulsa Anonimizar.");
-                    })
-                    .addOnFailureListener(e -> {
-                        if (!isCurrentDocument(version)) return;
-                        lastText = "";
-                        setBusy(false);
-                        txtStatus.setText("Error OCR: " + e.getMessage());
-                    })
-                    .addOnCompleteListener(task -> {
-                        recognizer.close();
-                        if (activeRecognizer == recognizer) activeRecognizer = null;
-                    });
-        } catch (Exception e) {
-            lastText = "";
-            setBusy(false);
-            if (activeRecognizer != null) {
-                activeRecognizer.close();
-                activeRecognizer = null;
+        txtStatus.setText("Comprobando imagen...");
+        documentExecutor.execute(() -> {
+            try {
+                DocumentValidator.validateImage(getApplicationContext(), uri);
+                runOnUiThread(() -> {
+                    if (!isCurrentDocument(version)) return;
+                    sourceDocument = uri;
+                    setBusy(false);
+                    txtStatus.setText("Imagen preparada. Pulsa Anonimizar y revisa visualmente el resultado.");
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> {
+                    if (!isCurrentDocument(version)) return;
+                    sourceDocument = null;
+                    setBusy(false);
+                    txtStatus.setText("No se pudo procesar la imagen: " + e.getMessage());
+                });
             }
-            txtStatus.setText("Error imagen: " + e.getMessage());
-        }
+        });
     }
 
     @Override
@@ -204,17 +168,12 @@ public class MainActivity extends Activity {
         destroyed = true;
         documentVersion++;
         documentExecutor.shutdownNow();
-        if (activeRecognizer != null) activeRecognizer.close();
         super.onDestroy();
     }
 
     private void startVisualReview() {
-        if ((lastText == null || lastText.isEmpty()) && sourceDocument == null) {
-            txtStatus.setText("Primero selecciona un documento");
-            return;
-        }
         if (sourceDocument == null) {
-            txtStatus.setText("No se puede abrir la revisión visual");
+            txtStatus.setText("Primero selecciona un documento");
             return;
         }
         Intent visual = new Intent(this, VisualReviewActivity.class)
