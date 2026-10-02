@@ -102,7 +102,7 @@ public class VisualReviewActivity extends Activity {
         title.setTextSize(24);
         title.setTypeface(null, 1);
         title.setPadding(dp(10), 0, 0, 0);
-        header.addView(title, new LinearLayout.LayoutParams(0, dp(48), 1));
+        header.addView(title, new LinearLayout.LayoutParams(0, dp(44), 1));
         root.addView(header);
 
         statusCard = new MaterialCardView(this);
@@ -188,7 +188,7 @@ public class VisualReviewActivity extends Activity {
         controls.addView(tools);
 
         MaterialButton complete = button("Completar anonimización", true, this::complete);
-        LinearLayout.LayoutParams completeParams = new LinearLayout.LayoutParams(-1, dp(52));
+        LinearLayout.LayoutParams completeParams = new LinearLayout.LayoutParams(-1, dp(44));
         completeParams.setMargins(dp(3), 0, dp(3), 0);
         controls.addView(complete, completeParams);
         updateStatus();
@@ -207,7 +207,7 @@ public class VisualReviewActivity extends Activity {
         controls.addView(pageNavigation());
 
         MaterialButton save = button("Guardar en AnonDoc", true, this::saveFinal);
-        LinearLayout.LayoutParams saveParams = new LinearLayout.LayoutParams(-1, dp(56));
+        LinearLayout.LayoutParams saveParams = new LinearLayout.LayoutParams(-1, dp(44));
         saveParams.setMargins(dp(3), 0, dp(3), dp(8));
         controls.addView(save, saveParams);
 
@@ -435,7 +435,7 @@ public class VisualReviewActivity extends Activity {
         page.setTextSize(15);
         page.setText("Página " + (index + 1) + " de " + session.pages.size());
         page.setTextColor(primaryDark);
-        r.addView(page, new LinearLayout.LayoutParams(0, dp(48), 2));
+        r.addView(page, new LinearLayout.LayoutParams(0, dp(44), 2));
 
         MaterialButton next = button("›", false, () -> navigate(index + 1));
         next.setTextSize(28);
@@ -454,7 +454,7 @@ public class VisualReviewActivity extends Activity {
     }
 
     private LinearLayout.LayoutParams weight() {
-        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, dp(48), 1);
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, dp(44), 1);
         p.setMargins(dp(3), 0, dp(3), 0);
         return p;
     }
