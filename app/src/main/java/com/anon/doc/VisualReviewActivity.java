@@ -82,7 +82,7 @@ public class VisualReviewActivity extends Activity {
     private void buildShell() {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(16), dp(10), dp(16), dp(14));
+        root.setPadding(dp(16), dp(10), dp(16), dp(22));
         root.setBackgroundColor(background);
 
         LinearLayout header = new LinearLayout(this);
