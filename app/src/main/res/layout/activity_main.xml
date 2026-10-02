@@ -48,7 +48,7 @@
                 android:textSize="16sp" />
 
             <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardSelect"
+                android:id="@+id/btnSelect"
                 android:layout_width="match_parent"
                 android:layout_height="88dp"
                 android:layout_marginTop="24dp"
@@ -116,7 +116,7 @@
             </com.google.android.material.card.MaterialCardView>
 
             <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardSelectImage"
+                android:id="@+id/btnSelectImage"
                 android:layout_width="match_parent"
                 android:layout_height="88dp"
                 android:layout_marginTop="12dp"
@@ -184,7 +184,7 @@
             </com.google.android.material.card.MaterialCardView>
 
             <com.google.android.material.card.MaterialCardView
-                android:id="@+id/cardViewFiles"
+                android:id="@+id/btnViewFiles"
                 android:layout_width="match_parent"
                 android:layout_height="88dp"
                 android:layout_marginTop="12dp"
