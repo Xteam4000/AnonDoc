@@ -182,6 +182,40 @@ public class MainFlowTest {
         } finally { source.delete(); }
     }
 
+
+    private ViewAction diagnosticClickAtLeast90() {
+        return new ViewAction() {
+            @Override public Matcher<View> getConstraints() {
+                return allOf(isEnabled(), isDisplayed());
+            }
+
+            @Override public String getDescription() {
+                return "click view after verifying at least 90 percent is globally visible";
+            }
+
+            @Override public void perform(UiController uiController, View view) {
+                Rect visible = new Rect();
+                boolean hasVisibleRect = view.getGlobalVisibleRect(visible);
+                int totalArea = Math.max(1, view.getWidth() * view.getHeight());
+                int visibleArea = Math.max(0, visible.width()) * Math.max(0, visible.height());
+                float fraction = (float) visibleArea / totalArea;
+                assertTrue("Visible fraction=" + fraction
+                                + " visibleRect=" + visible
+                                + " size=" + view.getWidth() + "x" + view.getHeight()
+                                + " location=" + java.util.Arrays.toString(location(view)),
+                        hasVisibleRect && fraction >= 0.90f);
+                assertTrue("performClick returned false", view.performClick());
+                uiController.loopMainThreadUntilIdle();
+            }
+        };
+    }
+
+    private int[] location(View view) {
+        int[] out = new int[2];
+        view.getLocationOnScreen(out);
+        return out;
+    }
+
     private void select(Uri uri) {
         // Only the external picker is stubbed: the app receives an actual stored file.
         intending(hasAction(Intent.ACTION_OPEN_DOCUMENT)).respondWith(
@@ -247,7 +281,7 @@ public class MainFlowTest {
         Set<Uri> before=outputUris();
         onView(withId(R.id.btnAnon)).perform(click());
         waitForVisualText("Página 1 de 1");
-        onView(withText("Editar manualmente")).perform(click());
+        onView(withText("Editar manualmente")).perform(diagnosticClickAtLeast90());
         onView(withText("Tachar")).perform(click());
         onView(withContentDescription("Documento anonimizado ampliable")).perform(
             new androidx.test.espresso.action.GeneralSwipeAction(
@@ -292,7 +326,7 @@ public class MainFlowTest {
         waitForVisualText("Página 1 de 2");
         onView(withText("›")).perform(click());
         onView(withText("Página 2 de 2")).check(matches(isDisplayed()));
-        onView(withText("Editar manualmente")).perform(click());
+        onView(withText("Editar manualmente")).perform(diagnosticClickAtLeast90());
         onView(withText("Página 2 de 2")).check(matches(isDisplayed()));
         onView(withText("‹")).perform(click());
         onView(withText("Página 1 de 2")).check(matches(isDisplayed()));
