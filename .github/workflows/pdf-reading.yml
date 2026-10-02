@@ -61,3 +61,5 @@ jobs:
                       print(case.attrib)
                       print((failure.text or '')[:20000])
           PY
+
+# Artifact publication verified through pull-request CI.
