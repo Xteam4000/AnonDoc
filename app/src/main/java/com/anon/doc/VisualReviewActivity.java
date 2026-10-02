@@ -159,11 +159,11 @@ public class VisualReviewActivity extends Activity {
         help.setText("Revisa todas las páginas. Pellizca para ampliar y arrastra para desplazarte.");
         showPage(index);
         controls.removeAllViews();
-        controls.addView(pageNavigation());
+        controls.addView(pageNavigation(), rowParams());
         LinearLayout row = row();
         row.addView(button("Editar manualmente", false, this::showManual), weight());
         row.addView(button("Está bien", true, this::complete), weight());
-        controls.addView(row);
+        controls.addView(row, rowParams());
     }
 
     private void showManual() {
@@ -174,13 +174,13 @@ public class VisualReviewActivity extends Activity {
         status.setText(marking ? "Modo Tachar activado" : "Edición manual");
         help.setText("Toca Tachar y arrastra sobre la zona que quieras ocultar.");
         controls.removeAllViews();
-        controls.addView(pageNavigation());
+        controls.addView(pageNavigation(), rowParams());
 
         LinearLayout tools = row();
         markButton = button(marking ? "Tachar activado" : "Tachar", marking, this::toggleMarking);
         tools.addView(markButton, weight());
         tools.addView(button("Borrar último", false, this::undo), weight());
-        controls.addView(tools);
+        controls.addView(tools, rowParams());
 
         MaterialButton complete = button("Completar anonimización", true, this::complete);
         LinearLayout.LayoutParams completeParams = new LinearLayout.LayoutParams(-1, dp(56));
@@ -199,7 +199,7 @@ public class VisualReviewActivity extends Activity {
         help.setText("La versión final está lista para guardarse.");
         showPage(index);
         controls.removeAllViews();
-        controls.addView(pageNavigation());
+        controls.addView(pageNavigation(), rowParams());
 
         MaterialButton save = button("Guardar en AnonDoc", true, this::saveFinal);
         LinearLayout.LayoutParams saveParams = new LinearLayout.LayoutParams(-1, dp(56));
@@ -426,8 +426,13 @@ public class VisualReviewActivity extends Activity {
     private LinearLayout row() {
         LinearLayout r = new LinearLayout(this);
         r.setOrientation(LinearLayout.HORIZONTAL);
-        r.setPadding(0, 0, 0, dp(8));
         return r;
+    }
+
+    private LinearLayout.LayoutParams rowParams() {
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, -2);
+        p.setMargins(0, 0, 0, dp(8));
+        return p;
     }
 
     private LinearLayout pageNavigation() {
