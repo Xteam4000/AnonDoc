@@ -185,10 +185,9 @@ public class MainFlowTest {
 
     private String viewChain(View view) {
         StringBuilder out = new StringBuilder();
-        android.view.ViewParent parent = view;
+        View v = view;
         int depth = 0;
-        while (parent instanceof View && depth < 12) {
-            View v = (View) parent;
+        while (v != null && depth < 12) {
             int[] loc = new int[2];
             v.getLocationOnScreen(loc);
             Rect visible = new Rect();
@@ -208,7 +207,8 @@ public class MainFlowTest {
                 out.append(" clipChildren=").append(g.getClipChildren())
                         .append(" clipToPadding=").append(g.getClipToPadding());
             }
-            parent = v.getParent();
+            android.view.ViewParent parent = v.getParent();
+            v = parent instanceof View ? (View) parent : null;
             depth++;
         }
         return out.toString();
