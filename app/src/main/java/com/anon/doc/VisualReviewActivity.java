@@ -81,7 +81,7 @@ public class VisualReviewActivity extends Activity {
     private void buildShell() {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(16), dp(10), dp(16), dp(30));
+        root.setPadding(dp(16), dp(10), dp(16), dp(14));
         root.setBackgroundColor(background);
 
         LinearLayout header = new LinearLayout(this);
@@ -96,7 +96,7 @@ public class VisualReviewActivity extends Activity {
         title.setTextSize(24);
         title.setTypeface(null, 1);
         title.setPadding(dp(10), 0, 0, 0);
-        header.addView(title, new LinearLayout.LayoutParams(0, dp(48), 1));
+        header.addView(title, new LinearLayout.LayoutParams(0, dp(42), 1));
         root.addView(header);
 
         statusCard = new MaterialCardView(this);
@@ -182,7 +182,7 @@ public class VisualReviewActivity extends Activity {
         controls.addView(tools);
 
         MaterialButton complete = button("Completar anonimización", true, this::complete);
-        LinearLayout.LayoutParams completeParams = new LinearLayout.LayoutParams(-1, dp(56));
+        LinearLayout.LayoutParams completeParams = new LinearLayout.LayoutParams(-1, dp(52));
         completeParams.setMargins(dp(3), 0, dp(3), 0);
         controls.addView(complete, completeParams);
         updateStatus();
@@ -413,7 +413,7 @@ public class VisualReviewActivity extends Activity {
     private LinearLayout row() {
         LinearLayout r = new LinearLayout(this);
         r.setOrientation(LinearLayout.HORIZONTAL);
-        r.setPadding(0, 0, 0, dp(8));
+        r.setPadding(0, 0, 0, dp(4));
         return r;
     }
 
@@ -429,7 +429,7 @@ public class VisualReviewActivity extends Activity {
         page.setTextSize(15);
         page.setText("Página " + (index + 1) + " de " + session.pages.size());
         page.setTextColor(primaryDark);
-        r.addView(page, new LinearLayout.LayoutParams(0, dp(48), 2));
+        r.addView(page, new LinearLayout.LayoutParams(0, dp(42), 2));
 
         MaterialButton next = button("›", false, () -> navigate(index + 1));
         next.setTextSize(28);
