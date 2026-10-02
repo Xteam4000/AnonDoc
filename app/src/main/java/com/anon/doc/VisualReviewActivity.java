@@ -476,6 +476,8 @@ public class VisualReviewActivity extends Activity {
         b.setStrokeWidth(strong ? 0 : dp(1));
         b.setInsetTop(0);
         b.setInsetBottom(0);
+        b.setMinHeight(0);
+        b.setMinimumHeight(0);
         b.setOnClickListener(v -> action.run());
         return b;
     }
