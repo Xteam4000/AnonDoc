@@ -85,7 +85,7 @@ public class VisualReviewActivity extends Activity {
         root.setBackgroundColor(background);
         LinearLayout header = new LinearLayout(this);
         header.setGravity(Gravity.CENTER_VERTICAL);
-        MaterialButton back = button("‹", false, this::onBackPressed);
+        MaterialButton back = button("←", false, this::onBackPressed);
         back.setTextSize(30);
         back.setContentDescription("Volver");
         LinearLayout.LayoutParams backParams = new LinearLayout.LayoutParams(dp(52), dp(48));
