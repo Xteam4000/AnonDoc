@@ -19,6 +19,9 @@ import java.util.*;
 
 /** Creates a new image-only PDF. Original PDF objects never enter the output. */
 final class VisualPdf {
+    private static final int MAX_RENDER_EDGE = 2000;
+    private static final long MAX_TOTAL_PIXELS = 24000000L;
+
     interface Progress { void page(int current, int total); }
     static final class Page {
         final File image;
@@ -92,10 +95,11 @@ final class VisualPdf {
                     try(PdfRenderer.Page page=renderer.openPage(i)) {
                         int pw=page.getWidth(),ph=page.getHeight();
                         if(pw<1 || ph<1) throw new IOException("Dimensiones inválidas");
-                        float scale=Math.min(3f,2000f/Math.max(pw,ph));
-                        int w=Math.max(1,Math.round(pw*scale)), h=Math.max(1,Math.round(ph*scale));
+                        long perPageBudget = Math.max(1L, MAX_TOTAL_PIXELS / count);
+                        int[] size = renderSize(pw, ph, perPageBudget);
+                        int w=size[0], h=size[1];
                         pixels+=(long)w*h;
-                        if(pixels>24000000L) throw new IOException("El PDF supera el límite de resolución total; no se exportará parcialmente");
+                        if(pixels>MAX_TOTAL_PIXELS) throw new IOException("El PDF supera el límite de resolución total; no se exportará parcialmente");
                         bitmap=Bitmap.createBitmap(w,h,Bitmap.Config.ARGB_8888);
                         bitmap.eraseColor(Color.WHITE);
                         page.render(bitmap,null,null,PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
@@ -120,13 +124,6 @@ final class VisualPdf {
         Bitmap bitmap=decodeOrientedImage(context,uri);
         try {
             if(bitmap==null) throw new IOException("No se puede leer la imagen");
-            long pixels=(long)bitmap.getWidth()*bitmap.getHeight();
-            if(pixels>24000000L) {
-                float scale=(float)Math.sqrt(24000000d/pixels);
-                Bitmap reduced=Bitmap.createScaledBitmap(bitmap,Math.max(1,Math.round(bitmap.getWidth()*scale)),
-                        Math.max(1,Math.round(bitmap.getHeight()*scale)),true);
-                if(reduced!=bitmap) { bitmap.recycle(); bitmap=reduced; }
-            }
             Text recognized=recognize(bitmap);
             List<RectF> boxes=detectBoxes(recognized,additional,bitmap.getWidth(),bitmap.getHeight());
             File image=new File(session.directory,"page_0.png");
@@ -140,17 +137,63 @@ final class VisualPdf {
         } finally { if(bitmap!=null && !bitmap.isRecycled()) bitmap.recycle(); }
     }
 
+    private static long safeBitmapPixels() {
+        // ARGB_8888 uses four bytes per pixel. Keep one working bitmap near or
+        // below one third of the Java heap so OCR/rotation/PDFBox retain headroom.
+        long heap = Runtime.getRuntime().maxMemory();
+        long byHeap = Math.max(750000L, heap / 12L);
+        return Math.min(MAX_TOTAL_PIXELS, byHeap);
+    }
+
+    private static int[] renderSize(int width, int height, long documentBudget) {
+        double scale = Math.min(3d, (double) MAX_RENDER_EDGE / Math.max(width, height));
+        long initialPixels = Math.max(1L,
+                Math.round(width * scale) * (long) Math.max(1, Math.round(height * scale)));
+        long budget = Math.max(1L, Math.min(documentBudget, safeBitmapPixels()));
+        if (initialPixels > budget) {
+            scale *= Math.sqrt((double) budget / initialPixels);
+        }
+        int w = Math.max(1, (int) Math.round(width * scale));
+        int h = Math.max(1, (int) Math.round(height * scale));
+        return new int[]{w, h};
+    }
+
     private static Bitmap decodeOrientedImage(Context context,Uri uri) throws Exception {
+        BitmapFactory.Options bounds = new BitmapFactory.Options();
+        bounds.inJustDecodeBounds = true;
+        try(InputStream in=context.getContentResolver().openInputStream(uri)) {
+            if(in==null) throw new IOException("No se puede abrir la imagen");
+            BitmapFactory.decodeStream(in,null,bounds);
+        }
+        if(bounds.outWidth<1 || bounds.outHeight<1) return null;
+
+        long pixelBudget = safeBitmapPixels();
+        int sample = 1;
+        while(true) {
+            long w = Math.max(1, bounds.outWidth / sample);
+            long h = Math.max(1, bounds.outHeight / sample);
+            if(w<=MAX_RENDER_EDGE && h<=MAX_RENDER_EDGE && w*h<=pixelBudget) break;
+            if(sample > 1024) throw new IOException("La imagen es demasiado grande");
+            sample *= 2;
+        }
+
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inSampleSize = sample;
+        options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+        options.inMutable = true;
         Bitmap bitmap;
         try(InputStream in=context.getContentResolver().openInputStream(uri)) {
             if(in==null) throw new IOException("No se puede abrir la imagen");
-            bitmap=BitmapFactory.decodeStream(in);
+            bitmap=BitmapFactory.decodeStream(in,null,options);
         }
         if(bitmap==null) return null;
+
         int orientation=ExifInterface.ORIENTATION_NORMAL;
         try(InputStream in=context.getContentResolver().openInputStream(uri)) {
-            if(in!=null) orientation=new ExifInterface(in).getAttributeInt(ExifInterface.TAG_ORIENTATION,ExifInterface.ORIENTATION_NORMAL);
+            if(in!=null) orientation=new ExifInterface(in).getAttributeInt(
+                    ExifInterface.TAG_ORIENTATION,ExifInterface.ORIENTATION_NORMAL);
         } catch(IOException ignored) {}
+
         Matrix matrix=new Matrix();
         switch(orientation) {
             case ExifInterface.ORIENTATION_FLIP_HORIZONTAL: matrix.setScale(-1,1); break;
