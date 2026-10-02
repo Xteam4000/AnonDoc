@@ -116,7 +116,7 @@ public class VisualReviewActivity extends Activity {
         help.setTextColor(secondary);
         help.setTextSize(14);
         help.setGravity(Gravity.CENTER);
-        help.setPadding(dp(4), 0, dp(4), dp(10));
+        help.setPadding(dp(4), 0, dp(4), dp(6));
         root.addView(help);
 
         MaterialCardView previewCard = new MaterialCardView(this);
@@ -132,7 +132,7 @@ public class VisualReviewActivity extends Activity {
 
         controls = new LinearLayout(this);
         controls.setOrientation(LinearLayout.VERTICAL);
-        controls.setPadding(0, dp(10), 0, 0);
+        controls.setPadding(0, dp(6), 0, 0);
         root.addView(controls);
 
         setContentView(root);
@@ -429,7 +429,7 @@ public class VisualReviewActivity extends Activity {
         page.setTextSize(15);
         page.setText("Página " + (index + 1) + " de " + session.pages.size());
         page.setTextColor(primaryDark);
-        r.addView(page, new LinearLayout.LayoutParams(0, dp(50), 2));
+        r.addView(page, new LinearLayout.LayoutParams(0, dp(48), 2));
 
         MaterialButton next = button("›", false, () -> navigate(index + 1));
         next.setTextSize(28);
@@ -448,7 +448,7 @@ public class VisualReviewActivity extends Activity {
     }
 
     private LinearLayout.LayoutParams weight() {
-        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, dp(50), 1);
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, dp(48), 1);
         p.setMargins(dp(3), 0, dp(3), 0);
         return p;
     }
