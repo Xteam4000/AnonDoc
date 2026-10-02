@@ -28,6 +28,7 @@ public class VisualReviewActivity extends Activity {
     private MaterialCardView statusCard;
     private File finalPdf, pending;
     private boolean busy = true, marking;
+    private MaterialButton markButton;
 
     private final int primary = Color.rgb(23, 107, 114);
     private final int primaryDark = Color.rgb(15, 82, 88);
@@ -83,6 +84,7 @@ public class VisualReviewActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(dp(16), dp(10), dp(16), dp(14));
         root.setBackgroundColor(background);
+
         LinearLayout header = new LinearLayout(this);
         header.setGravity(Gravity.CENTER_VERTICAL);
         MaterialButton back = button("←", false, this::onBackPressed);
@@ -93,10 +95,13 @@ public class VisualReviewActivity extends Activity {
 
         title = new TextView(this);
         title.setTextColor(text);
-        title.setTextSize(24);
+        title.setTextSize(23);
         title.setTypeface(null, 1);
+        title.setSingleLine(true);
+        title.setEllipsize(null);
+        title.setGravity(Gravity.CENTER_VERTICAL);
         title.setPadding(dp(10), 0, 0, 0);
-        header.addView(title, new LinearLayout.LayoutParams(0, dp(44), 1));
+        header.addView(title, new LinearLayout.LayoutParams(0, dp(52), 1));
         root.addView(header);
 
         statusCard = new MaterialCardView(this);
@@ -116,7 +121,7 @@ public class VisualReviewActivity extends Activity {
         help.setTextColor(secondary);
         help.setTextSize(14);
         help.setGravity(Gravity.CENTER);
-        help.setPadding(dp(4), 0, dp(4), 0);
+        help.setPadding(dp(4), 0, dp(4), dp(10));
         root.addView(help);
 
         MaterialCardView previewCard = new MaterialCardView(this);
@@ -132,9 +137,7 @@ public class VisualReviewActivity extends Activity {
 
         controls = new LinearLayout(this);
         controls.setOrientation(LinearLayout.VERTICAL);
-        controls.setClipChildren(false);
-        controls.setClipToPadding(false);
-        controls.setPadding(0, 0, 0, dp(40));
+        controls.setPadding(0, dp(10), 0, 0);
         root.addView(controls);
 
         setContentView(root);
@@ -174,17 +177,13 @@ public class VisualReviewActivity extends Activity {
         controls.addView(pageNavigation());
 
         LinearLayout tools = row();
-        tools.addView(button(marking ? "Tachar activado" : "Tachar", marking,
-                () -> {
-                    marking = !marking;
-                    preview.setMarking(marking);
-                    showManual();
-                }), weight());
+        markButton = button(marking ? "Tachar activado" : "Tachar", marking, this::toggleMarking);
+        tools.addView(markButton, weight());
         tools.addView(button("Borrar último", false, this::undo), weight());
         controls.addView(tools);
 
         MaterialButton complete = button("Completar anonimización", true, this::complete);
-        LinearLayout.LayoutParams completeParams = new LinearLayout.LayoutParams(-1, dp(44));
+        LinearLayout.LayoutParams completeParams = new LinearLayout.LayoutParams(-1, dp(56));
         completeParams.setMargins(dp(3), 0, dp(3), 0);
         controls.addView(complete, completeParams);
         updateStatus();
@@ -203,7 +202,7 @@ public class VisualReviewActivity extends Activity {
         controls.addView(pageNavigation());
 
         MaterialButton save = button("Guardar en AnonDoc", true, this::saveFinal);
-        LinearLayout.LayoutParams saveParams = new LinearLayout.LayoutParams(-1, dp(44));
+        LinearLayout.LayoutParams saveParams = new LinearLayout.LayoutParams(-1, dp(56));
         saveParams.setMargins(dp(3), 0, dp(3), dp(8));
         controls.addView(save, saveParams);
 
@@ -211,6 +210,18 @@ public class VisualReviewActivity extends Activity {
         row.addView(button("Mis archivos", false, this::showFiles), weight());
         row.addView(button("Descartar", false, this::discard), weight());
         controls.addView(row);
+    }
+
+    private void toggleMarking() {
+        marking = !marking;
+        preview.setMarking(marking);
+        if (markButton != null) {
+            markButton.setText(marking ? "Tachar activado" : "Tachar");
+            markButton.setBackgroundTintList(ColorStateList.valueOf(marking ? primary : surface));
+            markButton.setTextColor(marking ? Color.WHITE : primaryDark);
+            markButton.setStrokeWidth(marking ? 0 : dp(1));
+        }
+        updateStatus();
     }
 
     private void complete() {
@@ -415,9 +426,7 @@ public class VisualReviewActivity extends Activity {
     private LinearLayout row() {
         LinearLayout r = new LinearLayout(this);
         r.setOrientation(LinearLayout.HORIZONTAL);
-        r.setClipChildren(false);
-        r.setClipToPadding(false);
-        r.setPadding(0, 0, 0, 0);
+        r.setPadding(0, 0, 0, dp(8));
         return r;
     }
 
@@ -434,7 +443,7 @@ public class VisualReviewActivity extends Activity {
         page.setTextSize(15);
         page.setText("Página " + (index + 1) + " de " + session.pages.size());
         page.setTextColor(primaryDark);
-        r.addView(page, new LinearLayout.LayoutParams(0, dp(44), 2));
+        r.addView(page, new LinearLayout.LayoutParams(0, dp(50), 2));
 
         MaterialButton next = button("›", false, () -> navigate(index + 1));
         next.setTextSize(28);
@@ -454,7 +463,7 @@ public class VisualReviewActivity extends Activity {
     }
 
     private LinearLayout.LayoutParams weight() {
-        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, dp(44), 1);
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, dp(50), 1);
         p.setMargins(dp(3), 0, dp(3), 0);
         return p;
     }
@@ -464,11 +473,6 @@ public class VisualReviewActivity extends Activity {
         b.setText(label);
         b.setAllCaps(false);
         b.setTextSize(14);
-        b.setMinHeight(0);
-        b.setMinimumHeight(0);
-        b.setMinWidth(0);
-        b.setMinimumWidth(0);
-        b.setPadding(dp(8), 0, dp(8), 0);
         b.setCornerRadius(dp(16));
         b.setBackgroundTintList(ColorStateList.valueOf(strong ? primary : surface));
         b.setTextColor(strong ? Color.WHITE : primaryDark);
@@ -476,8 +480,6 @@ public class VisualReviewActivity extends Activity {
         b.setStrokeWidth(strong ? 0 : dp(1));
         b.setInsetTop(0);
         b.setInsetBottom(0);
-        b.setMinHeight(0);
-        b.setMinimumHeight(0);
         b.setOnClickListener(v -> action.run());
         return b;
     }
