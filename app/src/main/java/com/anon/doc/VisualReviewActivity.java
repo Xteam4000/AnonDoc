@@ -122,7 +122,7 @@ public class VisualReviewActivity extends Activity {
         help.setTextColor(secondary);
         help.setTextSize(14);
         help.setGravity(Gravity.CENTER);
-        help.setPadding(dp(4), 0, dp(4), dp(6));
+        help.setPadding(dp(4), 0, dp(4), 0);
         root.addView(help);
 
         MaterialCardView previewCard = new MaterialCardView(this);
@@ -138,7 +138,7 @@ public class VisualReviewActivity extends Activity {
 
         controls = new LinearLayout(this);
         controls.setOrientation(LinearLayout.VERTICAL);
-        controls.setPadding(0, dp(6), 0, dp(24));
+        controls.setPadding(0, 0, 0, dp(24));
         root.addView(controls);
 
         setContentView(root);
