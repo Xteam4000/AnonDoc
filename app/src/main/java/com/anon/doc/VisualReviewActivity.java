@@ -232,6 +232,9 @@ public class VisualReviewActivity extends Activity {
         setStatusStyle(false);
         status.setText("Generando documento definitivo...");
         for (VisualPdf.Page p : session.pages) p.reviewed = true;
+        // The preview bitmap is not needed while exporting. Releasing it keeps
+        // the export peak low, especially on older/low-memory Android devices.
+        preview.release();
 
         worker.execute(() -> {
             try {
@@ -248,6 +251,7 @@ public class VisualReviewActivity extends Activity {
                     if (!destroyed) {
                         busy = false;
                         status.setText("No se pudo completar: " + e.getMessage());
+                        showPage(index);
                     }
                 });
             }
