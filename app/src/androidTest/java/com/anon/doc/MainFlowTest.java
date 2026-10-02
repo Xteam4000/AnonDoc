@@ -247,7 +247,7 @@ public class MainFlowTest {
         Set<Uri> before=outputUris();
         onView(withId(R.id.btnAnon)).perform(click());
         waitForVisualText("Página 1 de 1");
-        onView(withText("Lo hago yo")).perform(click());
+        onView(withText("Editar manualmente")).perform(click());
         onView(withText("Tachar")).perform(click());
         onView(withContentDescription("Documento anonimizado ampliable")).perform(
             new androidx.test.espresso.action.GeneralSwipeAction(
@@ -292,7 +292,7 @@ public class MainFlowTest {
         waitForVisualText("Página 1 de 2");
         onView(withText("›")).perform(click());
         onView(withText("Página 2 de 2")).check(matches(isDisplayed()));
-        onView(withText("Lo hago yo")).perform(click());
+        onView(withText("Editar manualmente")).perform(click());
         onView(withText("Página 2 de 2")).check(matches(isDisplayed()));
         onView(withText("‹")).perform(click());
         onView(withText("Página 1 de 2")).check(matches(isDisplayed()));
@@ -316,9 +316,9 @@ public class MainFlowTest {
         onView(withId(R.id.btnAnon)).check(matches(isEnabled()));
         onView(withId(R.id.btnAnon)).perform(click());
         waitForVisualText("Página 1 de 1");
-        onView(allOf(withText(startsWith("Página 1 de 1")),
-                withText(containsString("Sin texto OCR")))).check(matches(isDisplayed()));
-        onView(withText("Me vale")).check(matches(isEnabled()));
+        onView(withText("Página 1 de 1")).check(matches(isDisplayed()));
+        onView(withText(containsString("Sin texto OCR"))).check(matches(isDisplayed()));
+        onView(withText("Está bien")).check(matches(isEnabled()));
         androidx.test.espresso.Espresso.pressBack();
     }
 }
