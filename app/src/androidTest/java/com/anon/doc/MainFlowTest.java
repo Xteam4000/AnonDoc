@@ -183,6 +183,37 @@ public class MainFlowTest {
     }
 
 
+    private String viewChain(View view) {
+        StringBuilder out = new StringBuilder();
+        android.view.ViewParent parent = view;
+        int depth = 0;
+        while (parent instanceof View && depth < 12) {
+            View v = (View) parent;
+            int[] loc = new int[2];
+            v.getLocationOnScreen(loc);
+            Rect visible = new Rect();
+            boolean has = v.getGlobalVisibleRect(visible);
+            out.append("\n#").append(depth).append(" ")
+                    .append(v.getClass().getSimpleName())
+                    .append(" size=").append(v.getWidth()).append("x").append(v.getHeight())
+                    .append(" loc=").append(java.util.Arrays.toString(loc))
+                    .append(" visible=").append(has ? visible.toShortString() : "none")
+                    .append(" padding=")
+                    .append(v.getPaddingLeft()).append(",")
+                    .append(v.getPaddingTop()).append(",")
+                    .append(v.getPaddingRight()).append(",")
+                    .append(v.getPaddingBottom());
+            if (v instanceof android.view.ViewGroup) {
+                android.view.ViewGroup g = (android.view.ViewGroup) v;
+                out.append(" clipChildren=").append(g.getClipChildren())
+                        .append(" clipToPadding=").append(g.getClipToPadding());
+            }
+            parent = v.getParent();
+            depth++;
+        }
+        return out.toString();
+    }
+
     private ViewAction diagnosticClickAtLeast90() {
         return new ViewAction() {
             @Override public Matcher<View> getConstraints() {
@@ -202,7 +233,8 @@ public class MainFlowTest {
                 assertTrue("Visible fraction=" + fraction
                                 + " visibleRect=" + visible
                                 + " size=" + view.getWidth() + "x" + view.getHeight()
-                                + " location=" + java.util.Arrays.toString(location(view)),
+                                + " location=" + java.util.Arrays.toString(location(view))
+                                + viewChain(view),
                         hasVisibleRect && fraction >= 0.90f);
                 assertTrue("performClick returned false", view.performClick());
                 uiController.loopMainThreadUntilIdle();
