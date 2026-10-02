@@ -102,7 +102,7 @@ public class VisualReviewActivity extends Activity {
         title.setTextSize(24);
         title.setTypeface(null, 1);
         title.setPadding(dp(10), 0, 0, 0);
-        header.addView(title, new LinearLayout.LayoutParams(0, dp(42), 1));
+        header.addView(title, new LinearLayout.LayoutParams(0, dp(48), 1));
         root.addView(header);
 
         statusCard = new MaterialCardView(this);
@@ -435,7 +435,7 @@ public class VisualReviewActivity extends Activity {
         page.setTextSize(15);
         page.setText("Página " + (index + 1) + " de " + session.pages.size());
         page.setTextColor(primaryDark);
-        r.addView(page, new LinearLayout.LayoutParams(0, dp(42), 2));
+        r.addView(page, new LinearLayout.LayoutParams(0, dp(48), 2));
 
         MaterialButton next = button("›", false, () -> navigate(index + 1));
         next.setTextSize(28);
@@ -464,6 +464,11 @@ public class VisualReviewActivity extends Activity {
         b.setText(label);
         b.setAllCaps(false);
         b.setTextSize(14);
+        b.setMinHeight(0);
+        b.setMinimumHeight(0);
+        b.setMinWidth(0);
+        b.setMinimumWidth(0);
+        b.setPadding(dp(8), 0, dp(8), 0);
         b.setCornerRadius(dp(16));
         b.setBackgroundTintList(ColorStateList.valueOf(strong ? primary : surface));
         b.setTextColor(strong ? Color.WHITE : primaryDark);
