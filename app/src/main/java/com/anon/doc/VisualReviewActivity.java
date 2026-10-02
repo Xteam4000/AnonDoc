@@ -426,6 +426,7 @@ public class VisualReviewActivity extends Activity {
     private LinearLayout row() {
         LinearLayout r = new LinearLayout(this);
         r.setOrientation(LinearLayout.HORIZONTAL);
+        r.setBaselineAligned(false);
         return r;
     }
 
