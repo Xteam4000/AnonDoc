@@ -26,7 +26,7 @@ public class OutputStoreTest {
 
     @Test public void savesCompletePdfToPublicDownloadsAndListsIt() throws Exception {
         assumeTrue(Build.VERSION.SDK_INT >= 29);
-        File source = TextPdfExporter.export(context, "Documento revisado sin datos personales");
+        File source = TestPdfFactory.export(context, "Documento revisado sin datos personales");
         Uri uri = null;
         try {
             uri = OutputStore.publishToDownloads(context, source);

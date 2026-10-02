@@ -140,10 +140,10 @@ public class PdfOcrReaderTest {
     @Test public void exportsUniqueFilesAndWrapsLongReviewedText() throws Exception {
         StringBuilder text = new StringBuilder();
         for (int i = 0; i < 1500; i++) text.append("Texto revisado sin datos personales. ");
-        File first = TextPdfExporter.export(context, text.toString());
+        File first = TestPdfFactory.export(context, text.toString());
         File second = null;
         try {
-            second = TextPdfExporter.export(context, "Otra salida");
+            second = TestPdfFactory.export(context, "Otra salida");
             assertNotEquals(first.getName(), second.getName());
             try (PDDocument pdf = PDDocument.load(first)) {
                 assertTrue(pdf.getNumberOfPages() > 1);

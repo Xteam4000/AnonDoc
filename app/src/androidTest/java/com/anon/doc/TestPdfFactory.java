@@ -8,9 +8,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-/** Rebuilds reviewed text only; does not copy original images, signatures or metadata. */
-final class TextPdfExporter {
-    private TextPdfExporter() {}
+/** Test-only factory for temporary text PDFs used by instrumentation fixtures. */
+final class TestPdfFactory {
+    private TestPdfFactory() {}
 
     static File export(Context context, String text) throws IOException {
         File directory = context.getCacheDir();

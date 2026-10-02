@@ -19,7 +19,6 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.SystemClock;
 import android.provider.MediaStore;
-import android.widget.EditText;
 import android.widget.TextView;
 import androidx.test.core.app.ActivityScenario;
 import androidx.test.espresso.intent.Intents;
@@ -38,7 +37,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -207,55 +205,6 @@ public class MainFlowTest {
         fail("Document worker did not finish within 60 seconds");
     }
 
-    private String review(String additional) {
-        onView(withId(R.id.editAdditional)).perform(replaceText(additional), closeSoftKeyboard());
-        onView(withId(R.id.btnTextOnly)).perform(clickAfterLayout());
-        AtomicReference<String> result = new AtomicReference<>();
-        onView(allOf(isAssignableFrom(EditText.class), not(withId(R.id.editAdditional)))).check((view, error) -> {
-            if (error != null) throw error;
-            result.set(((EditText) view).getText().toString());
-        });
-        return result.get();
-    }
-
-    private OutputStore.Entry exportReviewed(Set<Uri> before, String edited) throws Exception {
-        if (edited != null) onView(isAssignableFrom(EditText.class)).perform(
-                replaceText(edited), closeSoftKeyboard());
-        onView(withText("Exportar texto revisado")).perform(clickAfterLayout());
-        waitForWorker();
-        onView(withId(R.id.txtStatus)).check(matches(withText(containsString("Descargas/AnonDoc"))));
-        OutputStore.Entry saved = null;
-        for (OutputStore.Entry file : OutputStore.list(context)) {
-            if (!before.contains(file.uri)) {
-                assertNull("Export should create exactly one new PDF", saved);
-                saved = file;
-            }
-        }
-        assertNotNull("No exported PDF found", saved);
-        return saved;
-    }
-
-    private ViewAction clickAfterLayout() {
-        return new ViewAction() {
-            @Override public Matcher<View> getConstraints() { return allOf(isDisplayed(), isEnabled()); }
-            @Override public String getDescription() { return "tap after keyboard and dialog layout settle"; }
-            @Override public void perform(UiController controller, View view) {
-                Rect previous = new Rect();
-                view.getGlobalVisibleRect(previous);
-                int stable = 0;
-                for (int i = 0; i < 20 && stable < 3; i++) {
-                    controller.loopMainThreadForAtLeast(100);
-                    Rect current = new Rect();
-                    view.getGlobalVisibleRect(current);
-                    if (current.equals(previous) && !view.isLayoutRequested()) stable++;
-                    else stable = 0;
-                    previous = current;
-                }
-                click().perform(controller, view);
-            }
-        };
-    }
-
     private String savedText(Uri uri) throws Exception {
         try (InputStream input = context.getContentResolver().openInputStream(uri)) {
             assertNotNull(input);
@@ -270,77 +219,12 @@ public class MainFlowTest {
                 .contains("juan@example.es"));
     }
 
-    @Test public void digitalPdfFlowsThroughReviewSaveListAndViewerIntent() throws Exception {
-        select(pdfFixture(false, false));
-        onView(withId(R.id.btnAnon)).check(matches(isEnabled()));
-        String preview = review("REFERENCIA RESERVADA");
-        assertHidden(preview);
-        assertFalse(preview.contains("REFERENCIA RESERVADA"));
-        assertTrue(preview.contains("[DATO]"));
-        Set<Uri> before = outputUris();
-        OutputStore.Entry output = exportReviewed(before, preview + "\nREVISION CONFIRMADA");
-        String stored = savedText(output.uri);
-        assertHidden(stored);
-        assertTrue(stored.contains("REVISION CONFIRMADA"));
-        onView(withId(R.id.btnViewFiles)).perform(scrollTo(), click());
-        waitForVisualText(output.name);
-        onView(withText(output.name)).check(matches(isDisplayed()));
-        onView(withContentDescription("Abrir " + output.name)).perform(click());
-        intended(allOf(hasAction(Intent.ACTION_VIEW), hasType("application/pdf"), hasData(output.uri)));
-        boolean grant = false;
-        for (Intent intent : Intents.getIntents()) {
-            if (Intent.ACTION_VIEW.equals(intent.getAction()) && output.uri.equals(intent.getData())) {
-                grant = (intent.getFlags() & Intent.FLAG_GRANT_READ_URI_PERMISSION) != 0;
-            }
-        }
-        assertTrue("Viewer must receive temporary read access", grant);
-    }
-
-    @Test public void scannedPdfFlowsThroughOcrAnonymizationAndPublicExport() throws Exception {
-        select(pdfFixture(true, false));
-        String preview = review("");
-        assertHidden(preview);
-        assertTrue(preview.contains("[DNI]"));
-        OutputStore.Entry output = exportReviewed(outputUris(), null);
-        assertHidden(savedText(output.uri));
-    }
-
-    @Test public void imageFlowsThroughOcrAnonymizationAndPublicExport() throws Exception {
-        select(imageFixture());
-        String preview = review("");
-        assertHidden(preview);
-        assertTrue(preview.contains("[DNI]"));
-        OutputStore.Entry output = exportReviewed(outputUris(), null);
-        assertHidden(savedText(output.uri));
-    }
-
-    @Test public void cancellingReviewNeverExports() throws Exception {
-        select(pdfFixture(false, false));
-        Set<Uri> before = outputUris();
-        review("");
-        onView(withText("Cancelar")).perform(click());
-        assertEquals(before, outputUris());
-        onView(withId(R.id.btnAnon)).check(matches(isEnabled()));
-    }
-
     @Test public void damagedNewDocumentCannotExportPreviouslyLoadedText() throws Exception {
         select(pdfFixture(false, false));
         onView(withId(R.id.btnAnon)).check(matches(isEnabled()));
         select(pdfFixture(false, true));
         onView(withId(R.id.btnAnon)).check(matches(not(isEnabled())));
         onView(withId(R.id.txtStatus)).check(matches(withText(containsString("No se pudo procesar"))));
-    }
-
-    @Test public void recreatingScreenClearsWorkButKeepsSavedFilesAccessible() throws Exception {
-        select(pdfFixture(false, false));
-        review("");
-        OutputStore.Entry output = exportReviewed(outputUris(), null);
-        scenario.recreate();
-        onView(withId(R.id.btnAnon)).check(matches(not(isEnabled())));
-        onView(withId(R.id.btnViewFiles)).perform(scrollTo(), click());
-        waitForVisualText(output.name);
-        onView(withText(output.name)).check(matches(isDisplayed()));
-        androidx.test.espresso.Espresso.pressBack();
     }
 
     private void waitForVisualText(String prefix) {
@@ -361,7 +245,6 @@ public class MainFlowTest {
     @Test public void originalLayoutFlowsThroughVisualReviewSaveAndList() throws Exception {
         select(pdfFixture(false,false));
         Set<Uri> before=outputUris();
-        onView(withId(R.id.editAdditional)).perform(replaceText("REFERENCIA RESERVADA"),closeSoftKeyboard());
         onView(withId(R.id.btnAnon)).perform(click());
         waitForVisualText("Página 1 de 1");
         onView(withText("Lo hago yo")).perform(click());
@@ -385,7 +268,6 @@ public class MainFlowTest {
         assertTrue(savedText(output.uri).trim().isEmpty());
         String visible=PdfOcrReader.read(context,output.uri,null).text;
         assertHidden(visible);
-        assertFalse(visible.contains("REFERENCIA RESERVADA"));
         assertTrue(visible.contains("INFORME"));
         androidx.test.espresso.Espresso.pressBack();
         onView(withId(R.id.btnViewFiles)).perform(scrollTo(), click());

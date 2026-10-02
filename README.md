@@ -1,16 +1,16 @@
 # AnonDoc
 
-Prototipo Android para extraer texto de imágenes y PDF, ocultar datos personales y exportar texto revisado o un PDF que conserve el aspecto original.
+Prototipo Android para extraer texto de imágenes y PDF, ocultar datos personales y exportar un PDF que conserve el aspecto original.
 
 ## Flujo
 
 1. Seleccionar un PDF o imagen.
 2. Esperar a la extracción y al OCR.
-3. Opcionalmente indicar datos concretos que deban ocultarse y pulsar Anonimizar.
+3. Pulsar Anonimizar.
 4. Revisar el resultado automático página a página. El usuario puede aceptarlo con Me vale o entrar en Lo hago yo.
 5. En Censura manual, navegar por todas las páginas, ampliar o desplazar con los gestos habituales y activar Tachar únicamente para dibujar rectángulos negros. Borrar último deshace las marcas manuales una a una.
 6. Completar la anonimización, revisar también todas las páginas del documento definitivo y guardarlo. En Android 10 o posterior se guarda en Descargas/AnonDoc; en Android anteriores se elige destino con Guardar como.
-7. Mis archivos abre una pantalla completa desde la que se puede abrir o eliminar cada PDF. “Más opciones · extraer solo texto” conserva el flujo secundario de reconstrucción textual.
+7. Mis archivos abre una pantalla completa desde la que se puede abrir o eliminar cada PDF.
 
 ## Lectura y límites
 
@@ -25,11 +25,10 @@ Prototipo Android para extraer texto de imágenes y PDF, ocultar datos personale
 
 ## Anonimización
 
-Reglas para DNI/NIE/NIF, IBAN españoles, correos, teléfonos españoles con separadores, campos de nombres/direcciones, fecha de nacimiento y CSV/CVE, códigos postales etiquetados y nombres precedidos de tratamientos. Se admiten valores literales adicionales indicados por el usuario.
+Reglas para DNI/NIE/NIF, IBAN españoles, correos, teléfonos españoles con separadores, campos de nombres/direcciones, fecha de nacimiento y CSV/CVE, códigos postales etiquetados y nombres precedidos de tratamientos.
 
 No se reemplaza indiscriminadamente toda palabra con mayúscula inicial. Los nombres libres, direcciones sin contexto, identificadores extranjeros y errores de OCR requieren revisión humana. No se garantiza anonimización completa ni detección de todas las categorías de datos personales.
 
-En el modo Revisar resultado se genera un documento nuevo que solo contiene el texto confirmado. No se copian imágenes, firmas, páginas originales ni sus metadatos. Es una reconstrucción textual, no una modificación del PDF original. Se ajustan las líneas y se usan nombres de archivo únicos. La copia de trabajo se crea en la caché privada y se elimina después del guardado. En Android 10 o posterior se publica el PDF completo en Descargas/AnonDoc mediante MediaStore, sin solicitar permisos amplios de almacenamiento. El botón Ver archivos anonimizados muestra los archivos disponibles de esa carpeta dentro de la aplicación; no depende de que un explorador externo admita abrir carpetas mediante intents. En versiones anteriores se usa el selector Guardar como y se registran los archivos elegidos. Es necesario tener un visor de PDF para abrirlos.
 
 ## Desarrollo y verificación
 
@@ -43,8 +42,8 @@ GitHub Actions ejecuta compilación, pruebas unitarias y pruebas instrumentadas 
 
 ## PDF con el diseño original
 
-El flujo visual se abre directamente al anonimizar. Renderiza cada página con PdfRenderer, propone ocultaciones con posiciones OCR y las mismas reglas/valores manuales y permite dibujar rectángulos adicionales. El resultado automático, la edición manual y el resultado definitivo permiten recorrer todas las páginas. Requiere comprobación visual completa, incluidos firmas, fotografías, QR/códigos de barras y datos que el OCR no detecte. Una propuesta puede ocultar una línea completa o un bloque para proteger campos repartidos; no se garantiza precisión ni anonimización automática completa.
+El flujo visual se abre directamente al anonimizar. Renderiza cada página con PdfRenderer, propone ocultaciones con posiciones OCR y las reglas automáticas, y permite dibujar rectángulos adicionales. El resultado automático, la edición manual y el resultado definitivo permiten recorrer todas las páginas. Requiere comprobación visual completa, incluidos firmas, fotografías, QR/códigos de barras y datos que el OCR no detecte. Una propuesta puede ocultar una línea completa o un bloque para proteger campos repartidos; no se garantiza precisión ni anonimización automática completa.
 
 La salida se construye desde imágenes con las zonas ya pintadas de negro de forma opaca. No se insertan imágenes originales debajo de overlays ni se copian texto oculto, metadatos originales, adjuntos, formularios, anotaciones o firmas digitales. Se mantiene el aspecto de las áreas no censuradas, las imágenes, el tamaño visible, la orientación y el orden de páginas. No es una copia idéntica de los objetos PDF: el texto queda rasterizado, no seleccionable; los enlaces y formularios pierden interactividad y las firmas digitales no conservan validez. Se usa PNG/compresión sin pérdida después de renderizar (hasta 3 píxeles por punto, lado mayor máximo 2000 píxeles). Puede haber pérdida de nitidez al ampliar y aumento de tamaño. Límite adicional de 24 millones de píxeles totales; el exceso falla completo, sin publicar páginas parciales.
 
-Las copias de revisión se guardan solo en caché privada y se eliminan al salir, fallar o terminar la Activity. Si el proceso es terminado abruptamente por el sistema, Android puede conservar la caché temporal hasta que la elimine; no se guarda progreso de revisión y es necesario empezar de nuevo. La copia de seguridad de la aplicación está desactivada. El original no se modifica. El guardado/listado usa el mismo OutputStore que el modo texto.
+Las copias de revisión se guardan solo en caché privada y se eliminan al salir, fallar o terminar la Activity. Si el proceso es terminado abruptamente por el sistema, Android puede conservar la caché temporal hasta que la elimine; no se guarda progreso de revisión y es necesario empezar de nuevo. La copia de seguridad de la aplicación está desactivada. El original no se modifica. El guardado y el listado usan OutputStore.
