@@ -131,6 +131,8 @@ public class VisualReviewActivity extends Activity {
 
         controls = new LinearLayout(this);
         controls.setOrientation(LinearLayout.VERTICAL);
+        controls.setClipChildren(false);
+        controls.setClipToPadding(false);
         controls.setPadding(0, 0, 0, dp(40));
         root.addView(controls);
 
@@ -412,7 +414,9 @@ public class VisualReviewActivity extends Activity {
     private LinearLayout row() {
         LinearLayout r = new LinearLayout(this);
         r.setOrientation(LinearLayout.HORIZONTAL);
-        r.setPadding(0, 0, 0, dp(4));
+        r.setClipChildren(false);
+        r.setClipToPadding(false);
+        r.setPadding(0, 0, 0, 0);
         return r;
     }
 
