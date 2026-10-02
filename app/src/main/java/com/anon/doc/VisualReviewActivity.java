@@ -83,6 +83,12 @@ public class VisualReviewActivity extends Activity {
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(dp(16), dp(10), dp(16), dp(14));
         root.setBackgroundColor(background);
+        root.setOnApplyWindowInsetsListener((view, insets) -> {
+            int bottomInset = insets.getSystemWindowInsetBottom();
+            view.setPadding(dp(16), dp(10), dp(16), dp(14) + bottomInset);
+            return insets;
+        });
+        root.requestApplyInsets();
 
         LinearLayout header = new LinearLayout(this);
         header.setGravity(Gravity.CENTER_VERTICAL);
