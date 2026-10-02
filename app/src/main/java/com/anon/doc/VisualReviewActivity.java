@@ -324,8 +324,14 @@ public class VisualReviewActivity extends Activity {
         if (session == null || busy) return;
         VisualPdf.Page p = session.pages.get(index);
         if (screen == Screen.AUTOMATIC) {
-            setStatusStyle(true);
-            status.setText("✓  Anonimización preparada");
+            if (p.emptyOcr) {
+                setStatusStyle(false);
+                status.setText("Página " + (index + 1) + " de " + session.pages.size()
+                        + " · Sin texto OCR: revísala completa");
+            } else {
+                setStatusStyle(true);
+                status.setText("✓  Anonimización preparada");
+            }
             return;
         }
         if (screen == Screen.FINAL) {
