@@ -87,6 +87,7 @@ public class VisualReviewActivity extends Activity {
         header.setGravity(Gravity.CENTER_VERTICAL);
         MaterialButton back = button("‹", false, this::onBackPressed);
         back.setTextSize(30);
+        back.setContentDescription("Volver");
         LinearLayout.LayoutParams backParams = new LinearLayout.LayoutParams(dp(52), dp(48));
         header.addView(back, backParams);
 
@@ -424,6 +425,7 @@ public class VisualReviewActivity extends Activity {
         LinearLayout r = row();
         MaterialButton previous = button("‹", false, () -> navigate(index - 1));
         previous.setTextSize(28);
+        previous.setContentDescription("Página anterior");
         r.addView(previous, weight());
 
         TextView page = new TextView(this);
@@ -436,6 +438,7 @@ public class VisualReviewActivity extends Activity {
 
         MaterialButton next = button("›", false, () -> navigate(index + 1));
         next.setTextSize(28);
+        next.setContentDescription("Página siguiente");
         r.addView(next, weight());
         return r;
     }
