@@ -46,7 +46,14 @@ jobs:
           api-level: ${{ matrix.api }}
           arch: x86_64
           disable-animations: true
-          script: ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" --no-daemon connectedDebugAndroidTest
+          script: |
+            set +e
+            ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" --no-daemon connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.anon.doc.MainFlowTest
+            FLOW=$?
+            ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" --no-daemon connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.anon.doc.VisualPdfTest
+            PDF=$?
+            echo "DIAGNOSTIC_RESULTS mainFlow=$FLOW visualPdf=$PDF"
+            if [ "$FLOW" -ne 0 ] || [ "$PDF" -ne 0 ]; then exit 1; fi
 
       - name: Show failed test reports
         if: failure()
