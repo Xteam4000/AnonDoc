@@ -138,7 +138,7 @@ public class VisualReviewActivity extends Activity {
 
         controls = new LinearLayout(this);
         controls.setOrientation(LinearLayout.VERTICAL);
-        controls.setPadding(0, 0, 0, dp(24));
+        controls.setPadding(0, 0, 0, dp(40));
         root.addView(controls);
 
         setContentView(root);
