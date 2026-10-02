@@ -4,9 +4,10 @@ import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.widget.Button;
+import android.view.View;
 import android.widget.TextView;
 
+import com.google.android.material.button.MaterialButton;
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.text.TextRecognition;
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
@@ -17,14 +18,14 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader;
 
-
 public class MainActivity extends Activity {
 
-    private Button btnSelect;
-    private Button btnSelectImage;
-    private Button btnAnon;
+    private View cardSelect;
+    private View cardSelectImage;
+    private MaterialButton btnAnon;
     private TextView txtStatus;
-    private Button btnViewFiles;
+    private TextView txtStatusTitle;
+    private View cardViewFiles;
     private static final int PICK_FILE = 1;
 
     private String lastText = "";
@@ -36,10 +37,11 @@ public class MainActivity extends Activity {
     private TextRecognizer activeRecognizer;
 
     private void setBusy(boolean busy) {
-        btnSelect.setEnabled(!busy);
-        if (btnSelectImage != null) btnSelectImage.setEnabled(!busy);
+        cardSelect.setEnabled(!busy);
+        if (cardSelectImage != null) cardSelectImage.setEnabled(!busy);
         btnAnon.setEnabled(!busy && (!lastText.isEmpty() || sourceDocument != null));
-        if (btnViewFiles != null) btnViewFiles.setEnabled(!busy);
+        if (cardViewFiles != null) cardViewFiles.setEnabled(!busy);
+        if (txtStatusTitle != null) txtStatusTitle.setText(busy ? "Procesando" : "Preparado");
     }
 
     private boolean isCurrentDocument(int version) {
@@ -47,33 +49,35 @@ public class MainActivity extends Activity {
     }
 
     @Override
-protected void onCreate(Bundle savedInstanceState) {
-    super.onCreate(savedInstanceState);
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
 
-    try {
-        setContentView(R.layout.activity_main);
+        try {
+            setContentView(R.layout.activity_main);
 
-        btnSelect = findViewById(R.id.btnSelect);
-        btnSelectImage = findViewById(R.id.btnSelectImage);
-        btnAnon = findViewById(R.id.btnAnon);
-        btnViewFiles = findViewById(R.id.btnViewFiles);
-        btnViewFiles.setOnClickListener(v -> startActivity(new Intent(this, OutputFilesActivity.class)));
-        txtStatus = findViewById(R.id.txtStatus);
+            cardSelect = findViewById(R.id.cardSelect);
+            cardSelectImage = findViewById(R.id.cardSelectImage);
+            btnAnon = findViewById(R.id.btnAnon);
+            cardViewFiles = findViewById(R.id.cardViewFiles);
+            txtStatus = findViewById(R.id.txtStatus);
+            txtStatusTitle = findViewById(R.id.txtStatusTitle);
 
-        PDFBoxResourceLoader.init(getApplicationContext());
-        setBusy(false);
-        txtStatus.setText("Preparado para seleccionar un PDF o una imagen");
+            cardViewFiles.setOnClickListener(v ->
+                    startActivity(new Intent(this, OutputFilesActivity.class)));
 
-        btnSelect.setOnClickListener(v -> openPdfPicker());
-        btnSelectImage.setOnClickListener(v -> openImagePicker());
-        btnAnon.setOnClickListener(v -> startVisualReview());
-    } catch (Exception e) {
-        // Si la app iba a crashear, lo mostramos aquí
-        TextView fallback = new TextView(this);
-        fallback.setText("CRASH EN INICIO:\n\n" + e.toString());
-        setContentView(fallback);
+            PDFBoxResourceLoader.init(getApplicationContext());
+            setBusy(false);
+            txtStatus.setText("Selecciona un PDF o una imagen para comenzar.");
+
+            cardSelect.setOnClickListener(v -> openPdfPicker());
+            cardSelectImage.setOnClickListener(v -> openImagePicker());
+            btnAnon.setOnClickListener(v -> startVisualReview());
+        } catch (Exception e) {
+            TextView fallback = new TextView(this);
+            fallback.setText("CRASH EN INICIO:\n\n" + e.toString());
+            setContentView(fallback);
+        }
     }
-}
 
     private void openPdfPicker() {
         openFilePicker("application/pdf");
@@ -209,10 +213,13 @@ protected void onCreate(Bundle savedInstanceState) {
             txtStatus.setText("Primero selecciona un documento");
             return;
         }
-        if (sourceDocument == null) { txtStatus.setText("No se puede abrir la revisión visual"); return; }
-        Intent visual = new Intent(this, VisualReviewActivity.class).setData(sourceDocument)
+        if (sourceDocument == null) {
+            txtStatus.setText("No se puede abrir la revisión visual");
+            return;
+        }
+        Intent visual = new Intent(this, VisualReviewActivity.class)
+                .setData(sourceDocument)
                 .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         startActivity(visual);
     }
-
 }
