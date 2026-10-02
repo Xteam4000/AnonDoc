@@ -27,7 +27,7 @@ jobs:
       - name: Install Android 34
         run: sdkmanager "platforms;android-34" "build-tools;34.0.0"
       - name: Build application and test APK
-        run: ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" --no-daemon assembleDebug assembleDebugAndroidTest testDebugUnitTest
+        run: ./gradlew -Dorg.gradle.java.home="$JAVA_HOME" --no-daemon --no-parallel --max-workers=1 assembleDebug assembleDebugAndroidTest testDebugUnitTest
       - name: Publish installable APK
         uses: actions/upload-artifact@v4
         with:
