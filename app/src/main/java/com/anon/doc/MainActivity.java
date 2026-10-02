@@ -55,10 +55,10 @@ public class MainActivity extends Activity {
         try {
             setContentView(R.layout.activity_main);
 
-            cardSelect = findViewById(R.id.cardSelect);
-            cardSelectImage = findViewById(R.id.cardSelectImage);
+            cardSelect = findViewById(R.id.btnSelect);
+            cardSelectImage = findViewById(R.id.btnSelectImage);
             btnAnon = findViewById(R.id.btnAnon);
-            cardViewFiles = findViewById(R.id.cardViewFiles);
+            cardViewFiles = findViewById(R.id.btnViewFiles);
             txtStatus = findViewById(R.id.txtStatus);
             txtStatusTitle = findViewById(R.id.txtStatusTitle);
 
