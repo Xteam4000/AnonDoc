@@ -209,7 +209,7 @@ public class VisualReviewActivity extends Activity {
         LinearLayout row = row();
         row.addView(button("Mis archivos", false, this::showFiles), weight());
         row.addView(button("Descartar", false, this::discard), weight());
-        controls.addView(row);
+        controls.addView(row, rowParams());
     }
 
     private void toggleMarking() {
@@ -430,7 +430,7 @@ public class VisualReviewActivity extends Activity {
     }
 
     private LinearLayout.LayoutParams rowParams() {
-        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, -2);
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, dp(50));
         p.setMargins(0, 0, 0, dp(8));
         return p;
     }
