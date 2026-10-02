@@ -9,4 +9,13 @@
     <color name="anon_text_secondary">#5D696C</color>
     <color name="anon_outline">#D8E1E3</color>
     <color name="anon_success">#287A4B</color>
+    <color name="anon_status_soft">#EAF7F1</color>
+    <color name="anon_blue">#1B73E8</color>
+    <color name="anon_blue_soft">#EAF3FF</color>
+    <color name="anon_green">#159B67</color>
+    <color name="anon_green_soft">#E7F8F0</color>
+    <color name="anon_purple">#6B42D9</color>
+    <color name="anon_purple_soft">#F1ECFF</color>
+    <color name="anon_danger">#B3261E</color>
+    <color name="anon_danger_soft">#FDECEA</color>
 </resources>
