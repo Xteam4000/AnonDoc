@@ -32,7 +32,10 @@ final class VisualPdf {
             masks.addAll(boxes); automatic=boxes.size(); emptyOcr=empty;
         }
         Bitmap bitmap() throws IOException {
-            Bitmap b=BitmapFactory.decodeFile(image.getAbsolutePath());
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+            options.inMutable = true;
+            Bitmap b = BitmapFactory.decodeFile(image.getAbsolutePath(), options);
             if(b==null) throw new IOException("No se puede leer la página");
             return b;
         }
@@ -204,17 +207,18 @@ final class VisualPdf {
         boolean success=false;
         try(PDDocument pdf=new PDDocument()) {
             for(Page page:session.pages) {
-                interrupted(); Bitmap original=page.bitmap(); Bitmap censored=null;
+                interrupted();
+                Bitmap censored = page.bitmap();
                 try {
-                    censored=original.copy(Bitmap.Config.ARGB_8888,true);
-                    if(censored==null) throw new IOException("No se puede crear la página censurada");
-                    paintMasks(new Canvas(censored),page.masks);
+                    paintMasks(new Canvas(censored), page.masks);
                     PDPage output=new PDPage(new PDRectangle(page.pointsWidth,page.pointsHeight));
                     pdf.addPage(output);
                     try(PDPageContentStream stream=new PDPageContentStream(pdf,output)) {
                         stream.drawImage(LosslessFactory.createFromImage(pdf,censored),0,0,page.pointsWidth,page.pointsHeight);
                     }
-                } finally { original.recycle(); if(censored!=null) censored.recycle(); }
+                } finally {
+                    censored.recycle();
+                }
             }
             pdf.save(file); success=true; return file;
         } catch(OutOfMemoryError lowMemory) {
