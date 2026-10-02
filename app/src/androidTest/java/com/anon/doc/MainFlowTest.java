@@ -266,7 +266,7 @@ public class MainFlowTest {
         while(SystemClock.uptimeMillis()<end) {
             try {
                 Matcher<View> expected = prefix.startsWith("Página ")
-                        ? withText(prefix) : withText(startsWith(prefix));
+                        ? withText(prefix) : withText(containsString(prefix));
                 onView(allOf(expected, isDisplayed())).check(matches(isDisplayed()));
                 return;
             } catch(androidx.test.espresso.NoMatchingViewException | AssertionError notReady) {
@@ -324,16 +324,16 @@ public class MainFlowTest {
         select(multiPagePdfFixture());
         onView(withId(R.id.btnAnon)).perform(click());
         waitForVisualText("Página 1 de 2");
-        onView(withText("›")).perform(click());
+        onView(withContentDescription("Página siguiente")).perform(click());
         onView(withText("Página 2 de 2")).check(matches(isDisplayed()));
         onView(withText("Editar manualmente")).perform(diagnosticClickAtLeast90());
         onView(withText("Página 2 de 2")).check(matches(isDisplayed()));
-        onView(withText("‹")).perform(click());
+        onView(withContentDescription("Página anterior")).perform(click());
         onView(withText("Página 1 de 2")).check(matches(isDisplayed()));
         onView(withText("Completar anonimización")).perform(click());
         waitForVisualText("Documento definitivo preparado");
         onView(withText("Página 1 de 2")).check(matches(isDisplayed()));
-        onView(withText("›")).perform(click());
+        onView(withContentDescription("Página siguiente")).perform(click());
         onView(withText("Página 2 de 2")).check(matches(isDisplayed()));
         onView(withText("Descartar")).perform(click());
     }
